@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Settings Configuration View Extension -->
+    <record id="res_config_settings_view_form_load" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.ice.sales</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="100"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <form position="inside">
+                <app string="Ice Loading Management" name="ice_loading_management">
+                    <block title="Default Products" help="Configure default products for ice loading operations">
+                        <setting string="Default 4kg Ice Product" help="Select the default product for 4kg ice blocks">
+                            <field name="default_product_4kg_id" 
+                                   domain="[('ice_product_type', '=', '4kg'), ('type', '=', 'product')]"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                        </setting>
+                        <setting string="Default 25kg Ice Product" help="Select the default product for 25kg ice blocks">
+                            <field name="default_product_25kg_id" 
+                                   domain="[('ice_product_type', '=', '25kg'), ('type', '=', 'product')]"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                        </setting>
+                        <setting string="Default Ice Cup Product" help="Select the default product for ice cups">
+                            <field name="default_product_cup_id" 
+                                   domain="[('ice_product_type', '=', 'cup'), ('type', '=', 'product')]"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                        </setting>
+                        <setting string="Default Freezer Location" help="Default location for freezer renting operations">
+                            <field name="default_freezer_location_id" 
+                                   domain="[('usage', '=', 'internal')]"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                        </setting>
+                    </block>
+                </app>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========================================
+         CAR CHANGE WIZARD VIEWS
+         ======================================== -->
+    
+    <!-- Car Change Wizard Form View -->
+    <record id="view_ice_car_change_wizard_form" model="ir.ui.view">
+        <field name="name">ice.car.change.wizard.form</field>
+        <field name="model">ice.car.change.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Change Car">
+                <div class="alert alert-info" role="alert" style="margin-bottom: 0px;">
+                    <p><strong>Car Change Request</strong></p>
+                    <p>You are about to change the car for this loading request. Please review the information below and provide a reason for the change.</p>
+                </div>
+                
+                <group>
+                    <group string="Loading Request Information">
+                        <field name="loading_request_id" readonly="1"/>
+                        <field name="current_state" readonly="1" widget="badge"/>
+                    </group>
+                </group>
+
+                <!-- Status Warning -->
+                <div class="alert alert-warning" role="alert" invisible="not status_warning">
+                    <field name="status_warning" nolabel="1"/>
+                </div>
+
+                <group>
+                    <group string="Current Car">
+                        <field name="current_car_id" readonly="1"/>
+                        <field name="current_car_name" readonly="1"/>
+                        <field name="current_car_capacity" readonly="1" widget="float" digits="[16,2]"/>
+                    </group>
+                    <group string="New Car">
+                        <field name="new_car_id" options="{'no_create': True}" 
+                               domain="[('loading_status', '=', 'available'), ('id', '!=', current_car_id)]"/>
+                        <field name="new_car_name" readonly="1"/>
+                        <field name="new_car_capacity" readonly="1" widget="float" digits="[16,2]"/>
+                    </group>
+                </group>
+
+                <!-- Capacity Comparison -->
+                <group string="Capacity Analysis" invisible="not new_car_id">
+                    <group>
+                        <field name="capacity_difference" readonly="1" widget="float" digits="[16,2]"/>
+                    </group>
+                    <group>
+                        <div class="alert" role="alert" 
+                             t-attf-class="alert-#{record.capacity_difference.raw_value >= 0 and 'success' or 'warning'}"
+                             invisible="not capacity_warning">
+                            <field name="capacity_warning" nolabel="1"/>
+                        </div>
+                    </group>
+                </group>
+
+                <group string="Reason for Change" class="mt16">
+                    <field name="reason" nolabel="1" placeholder="Explain why the car needs to be changed..."/>
+                </group>
+
+                <group string="Notification Options">
+                    <group>
+                        <field name="notify_salesman"/>
+                        <field name="notify_team_leader"/>
+                    </group>
+                    <group>
+                        <field name="notify_sales_supervisor"/>
+                    </group>
+                </group>
+
+                <group string="Additional Message (Optional)">
+                    <field name="additional_message" nolabel="1" 
+                           placeholder="Any additional information to include in notifications..."/>
+                </group>
+
+                <footer>
+                    <button name="action_change_car" string="Change Car" type="object" 
+                            class="btn-primary" invisible="not new_car_id"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Car Change Wizard Action -->
+    <record id="action_ice_car_change_wizard" model="ir.actions.act_window">
+        <field name="name">Change Car</field>
+        <field name="res_model">ice.car.change.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_ice_loading_request"/>
+        <field name="binding_view_types">form</field>
+    </record>
+</odoo>

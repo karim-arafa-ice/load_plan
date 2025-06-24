@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Quantity Change Wizard Form View -->
+    <record id="view_loading_quantity_change_wizard_form" model="ir.ui.view">
+        <field name="name">ice.loading.quantity.change.wizard.form</field>
+        <field name="model">ice.loading.quantity.change.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Change Loading Quantities">
+                <sheet>
+                    <group>
+                        <field name="loading_request_id" invisible="1"/>
+                        <field name="change_reason" placeholder="Please provide a reason for changing quantities..." 
+                               widget="text" required="1"/>
+                    </group>
+                    <separator string="Product Quantities"/>
+                    <field name="line_ids">
+                        <tree editable="bottom" create="0" delete="0">
+                            <field name="product_id" readonly="1" force_save="1"/>
+                            <field name="product_type" readonly="1" widget="badge"
+                                   decoration-success="product_type == '4kg'"
+                                   decoration-warning="product_type == '25kg'"
+                                   decoration-info="product_type == 'cup'"/>
+                            <field name="current_quantity" readonly="1" widget="float" digits="[16,0]"/>
+                            <field name="new_quantity" widget="float" digits="[16,0]"/>
+                            <field name="max_capacity" readonly="1" widget="float" digits="[16,2]"/>
+                            <field name="computed_weight" readonly="1" widget="float" digits="[16,2]" 
+                                   decoration-danger="computed_weight > max_capacity"/>
+                            <field name="product_weight" invisible="1"/>
+                        </tree>
+                    </field>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Warning:</strong> Changing quantities will update the internal transfer if it's already created.
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_confirm" string="Confirm Changes" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Quantity Change History Tree View -->
+    <record id="view_loading_quantity_change_tree" model="ir.ui.view">
+        <field name="name">ice.loading.quantity.change.tree</field>
+        <field name="model">ice.loading.quantity.change</field>
+        <field name="arch" type="xml">
+            <tree string="Quantity Change History" create="0" edit="0" delete="0">
+                <field name="change_date" widget="datetime"/>
+                <field name="product_id"/>
+                <field name="old_quantity" widget="float" digits="[16,0]"/>
+                <field name="new_quantity" widget="float" digits="[16,0]"/>
+                <field name="changed_by"/>
+                <field name="change_reason"/>
+            </tree>
+        </field>
+    </record>
+    
+    <!-- Quantity Change History Form View -->
+    <record id="view_loading_quantity_change_form" model="ir.ui.view">
+        <field name="name">ice.loading.quantity.change.form</field>
+        <field name="model">ice.loading.quantity.change</field>
+        <field name="arch" type="xml">
+            <form string="Quantity Change Details" create="0" edit="0" delete="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="loading_request_id" readonly="1"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="change_date" readonly="1"/>
+                            <field name="changed_by" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="old_quantity" readonly="1" widget="float" digits="[16,0]"/>
+                            <field name="new_quantity" readonly="1" widget="float" digits="[16,0]"/>
+                        </group>
+                    </group>
+                    <group string="Reason for Change">
+                        <field name="change_reason" nolabel="1" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

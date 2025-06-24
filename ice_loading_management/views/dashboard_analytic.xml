@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========================================
+         DASHBOARD VIEWS
+         ======================================== -->
+    
+    <!-- Loading Dashboard View -->
+    <record id="view_ice_loading_dashboard" model="ir.ui.view">
+        <field name="name">ice.loading.dashboard</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <graph string="Loading Requests Analysis" type="bar">
+                <field name="state" type="row"/>
+                <field name="id" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Loading Pivot View -->
+    <record id="view_ice_loading_request_pivot" model="ir.ui.view">
+        <field name="name">ice.loading.request.pivot</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <pivot string="Loading Requests Pivot">
+                <field name="dispatch_time" interval="day" type="col"/>
+                <field name="state" type="row"/>
+                <field name="loading_priority" type="row"/>
+                <field name="total_weight" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Fleet Vehicle Dashboard -->
+    <record id="view_fleet_vehicle_graph_loading" model="ir.ui.view">
+        <field name="name">fleet.vehicle.graph.loading</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="arch" type="xml">
+            <graph string="Fleet Loading Status" type="pie">
+                <field name="loading_status" type="row"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ========================================
+         ENHANCED ACTIONS WITH DASHBOARD
+         ======================================== -->
+    
+    <!-- Enhanced Loading Request Action with All Views -->
+    <record id="action_ice_loading_request_all_views" model="ir.actions.act_window">
+        <field name="name">Loading Requests Dashboard</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">kanban,tree,form,graph,pivot</field>
+        <field name="context">{'search_default_active_states': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+                                      (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_ice_loading_request_kanban')}),
+                                      (0, 0, {'view_mode': 'tree', 'view_id': ref('view_ice_loading_request_tree')}),
+                                      (0, 0, {'view_mode': 'form', 'view_id': ref('view_ice_loading_request_form')}),
+                                      (0, 0, {'view_mode': 'graph', 'view_id': ref('view_ice_loading_dashboard')}),
+                                      (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_ice_loading_request_pivot')})]"/>
+    </record>
+
+    <!-- Fleet Vehicles with Loading Status -->
+    <record id="action_fleet_vehicle_loading_status" model="ir.actions.act_window">
+        <field name="name">Fleet Loading Status</field>
+        <field name="res_model">fleet.vehicle</field>
+        <field name="view_mode">tree,form,graph</field>
+        <field name="domain">[]</field>
+        <field name="context">{'search_default_available': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+                                      (0, 0, {'view_mode': 'tree', 'view_id': ref('view_fleet_vehicle_tree_ice_loading')}),
+                                      (0, 0, {'view_mode': 'form', 'view_id': ref('view_fleet_vehicle_form_ice_loading')}),
+                                      (0, 0, {'view_mode': 'graph', 'view_id': ref('view_fleet_vehicle_graph_loading')})]"/>
+    </record>
+
+    <!-- ========================================
+         QUICK ACTION BUTTONS
+         ======================================== -->
+    
+    <!-- Quick Actions for Today's Loading -->
+    <record id="action_today_loading_requests" model="ir.actions.act_window">
+        <field name="name">Today's Loading Requests</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="domain">[('dispatch_time', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')),
+                              ('dispatch_time', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]</field>
+        <field name="context">{'search_default_active_states': 1}</field>
+    </record>
+
+    <!-- Urgent Loading Requests (Priority 1) -->
+    <record id="action_urgent_loading_requests" model="ir.actions.act_window">
+        <field name="name">Urgent Loading Requests</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="domain">[('loading_priority', '=', 1), ('state', 'not in', ['cancelled', 'done'])]</field>
+        <field name="context">{'search_default_active_states': 1}</field>
+    </record>
+
+    <!-- Pending Car Checks -->
+    <record id="action_pending_car_checks" model="ir.actions.act_window">
+        <field name="name">Pending Car Checks</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '=', 'car_checking')]</field>
+    </record>
+
+    <!-- Ready for Loading -->
+    <record id="action_ready_for_loading" model="ir.actions.act_window">
+        <field name="name">Ready for Loading</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '=', 'ready_for_loading')]</field>
+    </record>
+
+    <!-- Requests with Freezers -->
+    <!-- <record id="action_requests_with_freezers" model="ir.actions.act_window">
+        <field name="name">Requests with Freezers</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('has_freezers', '=', True), ('state', 'not in', ['cancelled', 'done'])]</field>
+    </record> -->
+
+    <!-- ========================================
+         ENHANCED MENU STRUCTURE
+         ======================================== -->
+    
+    <!-- Update main loading requests menu to use enhanced action -->
+    <menuitem id="menu_ice_loading_requests_dashboard" 
+              name="Loading Requests Dashboard"
+              action="action_ice_loading_request_all_views" 
+              parent="menu_ice_loading_operations" 
+              sequence="10"/>
+
+    <!-- Quick Access Menu -->
+    <menuitem id="menu_ice_loading_quick_access" 
+              name="Quick Access" 
+              parent="menu_ice_loading_operations" 
+              sequence="5"/>
+
+    <menuitem id="menu_today_loading" 
+              name="Today's Loading"
+              action="action_today_loading_requests" 
+              parent="menu_ice_loading_quick_access" 
+              sequence="10"/>
+
+    <menuitem id="menu_urgent_loading" 
+              name="Urgent Loading"
+              action="action_urgent_loading_requests" 
+              parent="menu_ice_loading_quick_access" 
+              sequence="20"/>
+
+    <menuitem id="menu_pending_car_checks" 
+              name="Pending Car Checks"
+              action="action_pending_car_checks" 
+              parent="menu_ice_loading_quick_access" 
+              sequence="30"/>
+
+    <menuitem id="menu_ready_for_loading" 
+              name="Ready for Loading"
+              action="action_ready_for_loading" 
+              parent="menu_ice_loading_quick_access" 
+              sequence="40"/>
+
+    <!-- <menuitem id="menu_requests_with_freezers" 
+              name="Requests with Freezers"
+              action="action_requests_with_freezers" 
+              parent="menu_ice_loading_quick_access" 
+              sequence="50"/> -->
+
+    <!-- Fleet Menu -->
+    <menuitem id="menu_ice_loading_fleet" 
+              name="Fleet" 
+              parent="menu_ice_loading_operations" 
+              sequence="20"/>
+
+    <menuitem id="menu_fleet_loading_status" 
+              name="Fleet Loading Status"
+              action="action_fleet_vehicle_loading_status" 
+              parent="menu_ice_loading_fleet" 
+              sequence="10"/>
+
+    <!-- ========================================
+         SECURITY RECORD RULES
+         ======================================== -->
+    
+    <!-- Loading Request Access Rules -->
+    <record id="ice_loading_request_rule_salesman" model="ir.rule">
+        <field name="name">Loading Request: Salesman Access</field>
+        <field name="model_id" ref="model_ice_loading_request"/>
+        <field name="domain_force">[('salesman_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="ice_loading_request_rule_team_leader" model="ir.rule">
+        <field name="name">Loading Request: Team Leader Access</field>
+        <field name="model_id" ref="model_ice_loading_request"/>
+        <field name="domain_force">[('team_leader_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="ice_loading_request_rule_manager" model="ir.rule">
+        <field name="name">Loading Request: Manager Full Access</field>
+        <field name="model_id" ref="model_ice_loading_request"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('sales_team.group_sale_manager')),
+                                    (4, ref('ice_loading_management.group_fleet_supervisor')),
+                                    (4, ref('ice_loading_management.group_freezer_supervisor')),
+                                    (4, ref('stock.group_stock_manager'))]"/>
+    </record>
+
+    <!-- Loading Place Access Rules -->
+    <record id="ice_loading_place_rule_read" model="ir.rule">
+        <field name="name">Loading Place: Read Access</field>
+        <field name="model_id" ref="model_ice_loading_place"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="ice_loading_place_rule_write" model="ir.rule">
+        <field name="name">Loading Place: Write Access</field>
+        <field name="model_id" ref="model_ice_loading_place"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('sales_team.group_sale_manager')),
+                                    (4, ref('ice_loading_management.group_fleet_supervisor'))]"/>
+    </record>
+</odoo>

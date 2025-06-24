@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Freezer Release Form Report -->
+        <record id="action_report_freezer_release_form" model="ir.actions.report">
+            <field name="name">Freezer Release Form</field>
+            <field name="model">ice.loading.request</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">ice_loading_management.report_freezer_release_form</field>
+            <field name="report_file">ice_loading_management.report_freezer_release_form</field>
+            <field name="binding_model_id" ref="model_ice_loading_request"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <!-- Freezer Release Form Template -->
+        <template id="report_freezer_release_form">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <div class="oe_structure"/>
+                            
+                            <!-- Header -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="text-center">
+                                        <strong>FREEZER RELEASE FORM</strong>
+                                    </h2>
+                                </div>
+                            </div>
+                            
+                            <br/>
+                            
+                            <!-- Loading Request Information -->
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Loading Request:</strong> <span t-field="doc.name"/><br/>
+                                    <strong>Date:</strong> <span t-field="doc.dispatch_time" t-options="{'widget': 'date'}"/><br/>
+                                    <strong>Car:</strong> <span t-field="doc.car_id.license_plate"/> - <span t-field="doc.car_id.name"/><br/>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Salesman:</strong> <span t-field="doc.salesman_id.name"/><br/>
+                                    <strong>Team:</strong> <span t-field="doc.route_id.name"/><br/>
+                                    <strong>Loading Place:</strong> <span t-field="doc.loading_place_id.name"/><br/>
+                                </div>
+                            </div>
+                            
+                            <br/>
+                            
+                            <!-- Freezer Details -->
+                            <h4><strong>Freezer Details</strong></h4>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Freezer Category</th>
+                                        <th>Customer</th>
+                                        <th>Assigned Freezer</th>
+                                        <th>Serial Number</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="doc.freezer_renting_request_ids" t-as="freezer_req">
+                                        <tr>
+                                            <td><span t-field="freezer_req.category_id.name"/></td>
+                                            <td><span t-field="freezer_req.customer_id.name"/></td>
+                                            <td><span t-field="freezer_req.asset_id.name"/></td>
+                                            <td><span t-field="freezer_req.asset_id.code"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                            
+                            <br/>
+                            
+                            <!-- Release Statement -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4><strong>Release Statement</strong></h4>
+                                    <p>
+                                        I, <strong><span t-field="doc.salesman_id.name"/></strong>, acknowledge that I have received the above-mentioned freezer(s) 
+                                        in good condition and take full responsibility for their safe transport and delivery to the customers.
+                                    </p>
+                                    <br/>
+                                    <p>
+                                        I understand that these freezers are company assets and must be handled with care during transport.
+                                        Any damage or loss will be reported immediately to the freezer management team.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <br/><br/>
+                            
+                            <!-- Signatures -->
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Freezer Supervisor:</strong><br/>
+                                    <br/>
+                                    Name: _________________________<br/>
+                                    <br/>
+                                    Signature: _____________________<br/>
+                                    <br/>
+                                    <t t-set="current_date" t-value="datetime.datetime.now().strftime('%Y-%m-%d %H:%M')"/>
+                                    Date: <span t-esc="current_date"/>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Salesman (Receiver):</strong><br/>
+                                    <br/>
+                                    Name: <span t-field="doc.salesman_id.name"/><br/>
+                                    <br/>
+                                    Signature: _____________________<br/>
+                                    <br/>
+                                    Date: _________________________
+                                </div>
+                            </div>
+                            
+                            <div class="oe_structure"/>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>
