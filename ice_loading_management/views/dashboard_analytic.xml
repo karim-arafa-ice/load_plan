@@ -72,6 +72,47 @@
                                       (0, 0, {'view_mode': 'graph', 'view_id': ref('view_fleet_vehicle_graph_loading')})]"/>
     </record>
 
+
+
+    <record id="view_ice_loading_request_priority_kanban" model="ir.ui.view">
+        <field name="name">ice.loading.request.priority.kanban</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="loading_place_id" default_order="dispatch_time asc, create_date asc">
+                <field name="car_id"/>
+                <field name="salesman_id"/>
+                <field name="dispatch_time"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div><strong><field name="name"/></strong></div>
+                            <div><field name="car_id"/></div>
+                            <div><field name="salesman_id"/></div>
+                            <div><field name="dispatch_time" widget="datetime"/></div>
+                            <div><field name="state" widget="badge"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+
+    <record id="action_ice_loading_priority_screen" model="ir.actions.act_window">
+        <field name="name">Priority Screen</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">kanban,form</field>
+        <field name="view_id" ref="view_ice_loading_request_priority_kanban"/>
+        <field name="domain">[('state', 'not in', ['done', 'cancelled'])]</field>
+    </record>
+
+    <menuitem id="menu_ice_loading_priority_screen"
+              name="Priority Screen"
+              action="action_ice_loading_priority_screen"
+              parent="menu_ice_loading_quick_access"
+              sequence="1"/>
+
     <!-- ========================================
          QUICK ACTION BUTTONS
          ======================================== -->

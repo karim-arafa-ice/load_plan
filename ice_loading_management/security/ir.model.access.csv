@@ -12,3 +12,8 @@ access_ice_loading_confirm_wizard_user,ice.loading.confirm.wizard.user,model_ice
 access_ice_loading_quantity_change_wizard_user,ice.loading.quantity.change.wizard.user,model_ice_loading_quantity_change_wizard,base.group_user,1,1,1,1
 access_ice_loading_quantity_change,ice.loading.quantity.change.user,model_ice_loading_quantity_change,base.group_user,1,1,1,1
 access_ice_loading_quantity_change_wizard_line_user,ice.loading.quantity.change.wizard.line.user,model_ice_loading_quantity_change_wizard_line,base.group_user,1,1,1,1
+access_ice_return_request_user,ice.return.request.user,model_ice_return_request,base.group_user,1,1,1,1
+access_ice_return_request_line_user,ice.return.request.line.user,model_ice_return_request_line,base.group_user,1,1,1,1
+access_ice_pause_reason_wizard_user,ice.pause.reason.wizard.user,model_ice_pause_reason_wizard,base.group_user,1,1,1,1
+access_ice_warehouse_return_wizard_user,ice.warehouse.return.wizard.user,model_ice_warehouse_return_wizard,base.group_user,1,1,1,1
+access_ice_warehouse_return_wizard_line_user,ice.warehouse.return.wizard.line.user,model_ice_warehouse_return_wizard_line,base.group_user,1,1,1,1

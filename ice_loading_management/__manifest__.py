@@ -20,32 +20,38 @@
         'freezers_management',
         'sales_team',
         'rest_api',
+        'account',
     ],
     'data': [
         # Security
         'security/security.xml',
         'security/ir.model.access.csv',
 
-        # Views
-        'views/fleet_vehicle.xml',
+        'data/ir_sequence.xml',
+        'data/cron.xml',
         
-
-        # Reports
-        # 'reports/freezer_release_form_report.xml',
-        'reports/loading_form_report.xml',
-        'views/res_config_settings.xml',
-
-        
-        'views/dashboard_analytic.xml',
-
         'wizard/set_full_load_wizard.xml',
         'wizard/car_change_wizard.xml',
         'wizard/form_ipload_wizard.xml',
         'wizard/loading_worker_wizard.xml',
         'wizard/quantity_change_wizard.xml',
+        'wizard/pause_reason_wizard.xml', # New
+        'wizard/warehouse_return_wizard.xml', # New
+
+        # Views
+        'views/fleet_vehicle.xml',
+        'views/res_config_settings.xml',
+        'views/dashboard_analytic.xml',
+        'views/return_request_views.xml',
+
+        # Reports
+        # 'reports/freezer_release_form_report.xml',
+        'reports/loading_form_report.xml',
 
 
-        'data/ir_sequence.xml',
+
+
+        
       
     ],
     'assets': {

@@ -1,6 +1,7 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 from lxml import etree
+from datetime import datetime, timedelta
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class LoadingRequest(models.Model):
         # ('freezer_handled', 'Freezer Handled'),      # NEW STATE - After freezer release form signed
         ('ice_handled', 'Ice Loaded'),              # NEW STATE - After loading form signed
         ('plugged', 'Plugged / Ready for Dispatch'),
+        ('paused', 'Paused'),
         ('in_transit', 'In Transit'),
         ('delivering', 'Sesstion Started'),
         ('delivered', 'Delivered'),
@@ -100,6 +102,64 @@ class LoadingRequest(models.Model):
     # freezer_decision_date = fields.Datetime(string='Decision Date', readonly=True)
     quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
 
+    is_urgent = fields.Boolean(string="Urgent Request", default=False, help="Bypass 6-hour dispatch rule.")
+    pause_reason = fields.Text(string="Pause Reason", readonly=True)
+
+    @api.constrains('dispatch_time', 'is_urgent')
+    def _check_dispatch_time(self):
+        for request in self:
+            if request.is_urgent:
+                continue # Skip check for urgent requests
+            if request.dispatch_time and request.dispatch_time < datetime.now() + timedelta(hours=6):
+                raise ValidationError(_("Dispatch time must be at least 6 hours from now. For immediate dispatch, mark the request as urgent."))
+
+    @api.constrains('car_id', 'dispatch_time', 'is_urgent')
+    def _check_urgent_per_day(self):
+        for request in self:
+            if request.is_urgent:
+                domain = [
+                    ('car_id', '=', request.car_id.id),
+                    ('is_urgent', '=', True),
+                    ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
+                    ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
+                    ('id', '!=', request.id)
+                ]
+                if self.search_count(domain) > 0:
+                    raise ValidationError(_("A car can only have one urgent loading request per day."))
+                
+    @api.constrains('salesman_id', 'dispatch_time')
+    def _check_salesman_daily_loadings(self):
+        for request in self:
+            domain = [
+                ('salesman_id', '=', request.salesman_id.id),
+                ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
+                ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
+                ('id', '!=', request.id),
+                ('state', '!=', 'cancelled')
+            ]
+            if self.search_count(domain) >= 2:
+                raise ValidationError(_("A salesman can only have a maximum of two loading requests per day."))
+            
+    @api.constrains('salesman_id', 'state')
+    def _check_salesman_open_returns(self):
+        for request in self:
+            if request.state == 'confirmed': # Check on confirmation
+                open_return = self.env['ice.return.request'].search([
+                    ('salesman_id', '=', request.salesman_id.id),
+                    ('state', '!=', 'done')
+                ], limit=1)
+                if open_return:
+                    raise ValidationError(_("This salesman has an open return request (%s) and cannot proceed with new loadings.") % open_return.name)
+
+    @api.constrains('salesman_id', 'state')
+    def _check_salesman_credit_limit(self):
+        for request in self:
+             if request.state == 'confirmed':
+                journal = request.salesman_id.journal_id
+                if journal.credit_limit > 0 and journal.balance > journal.credit_limit:
+                     raise ValidationError(_("Salesman has exceeded the credit limit of %s. Current balance is %s.") % (journal.credit_limit, journal.balance))
+
+
     @api.onchange('product_line_ids')
     def _onchange_full_load(self):
         """When full load is checked, set quantity to max capacity for each product"""
@@ -162,7 +222,21 @@ class LoadingRequest(models.Model):
                 'default_loading_request_id': self.id,
             }
         }
+    def action_pause_loading(self):
+        # This action now opens the wizard. The wizard's action will do the pausing.
+        return {
+            'name': _('Reason for Pausing'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'ice.pause.reason.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_loading_request_id': self.id}
+        }
 
+    def action_continue_loading(self):
+        self.ensure_one()
+        self.message_post(body=_('Loading continued by %s.') % self.env.user.name)
+        return self.write({'state': 'plugged'})
     # @api.depends('freezer_line_ids')
     # def _compute_has_freezers(self):
     #     for record in self:
@@ -1009,7 +1083,7 @@ class LoadingQuantityChange(models.Model):
 class DriverSession(models.Model):
     _name = 'ice.driver.session'
     _description = 'Driver Session Management'
-    
+
     driver_id = fields.Many2one('res.users', string='Driver', required=True)
     car_id = fields.Many2one('fleet.vehicle', string='Car', required=True)
     session_start = fields.Datetime(string='Session Start', default=fields.Datetime.now)
@@ -1017,22 +1091,82 @@ class DriverSession(models.Model):
     is_active = fields.Boolean(string='Active Session', default=True)
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False, ondelete='set null')
     driver_comment = fields.Text(string='Driver Comment')
-    
+
     state = fields.Selection([
         ('open', 'Open'),
         ('closed', 'Closed'),
     ], string='Status', default='open')
-    
-    
+
     def close_session(self):
-        self.session_end = fields.Datetime.now()
-        self.is_active = False
-        self.state = 'closed'
-        # Create return car request
-        self._create_return_request()
-    
-    def _create_return_request(self):
-        pass
+        """
+        Closes the session and creates a single consolidated return request
+        for the salesman for the entire day if one doesn't already exist.
+        """
+        for session in self:
+            session.write({
+                'session_end': fields.Datetime.now(),
+                'is_active': False,
+                'state': 'closed',
+            })
+            # Create the consolidated return request for the day
+            self._create_daily_return_request(session.driver_id, session.session_start.date())
+
+    def _create_daily_return_request(self, salesman, return_date):
+        """
+        Creates a single return request for a given salesman and date,
+        gathering all of their loading requests for that day.
+        This method is idempotent and will not create duplicates.
+        """
+        # Check if a return request already exists for this salesman and date
+        existing_return = self.env['ice.return.request'].search([
+            ('salesman_id', '=', salesman.id),
+            ('date', '=', return_date)
+        ], limit=1)
+
+        if existing_return:
+            _logger.info("Return request for %s on %s already exists.", salesman.name, return_date)
+            return existing_return
+
+        # Find all loading requests for this salesman on the given date
+        start_of_day = fields.Datetime.start_of(fields.Datetime.to_datetime(return_date), 'day')
+        end_of_day = fields.Datetime.end_of(fields.Datetime.to_datetime(return_date), 'day')
+
+        loading_requests = self.env['ice.loading.request'].search([
+            ('salesman_id', '=', salesman.id),
+            ('dispatch_time', '>=', start_of_day),
+            ('dispatch_time', '<=', end_of_day),
+            ('state', 'not in', ['draft', 'cancelled'])
+        ])
+
+        if not loading_requests:
+            _logger.info("No loading requests found for %s on %s to create a return for.", salesman.name, return_date)
+            return False
+
+        # Create the single, consolidated return request
+        return_request = self.env['ice.return.request'].create({
+            'salesman_id': salesman.id,
+            'date': return_date,
+            'loading_request_ids': [(6, 0, loading_requests.ids)]
+        })
+        _logger.info("Created consolidated return request %s for salesman %s", return_request.name, salesman.name)
+
+        return return_request
+
+    @api.model
+    def _cron_auto_close_sessions(self):
+        """
+        Called by a scheduled action to close any driver sessions
+        that are still open from previous days and trigger their return requests.
+        """
+        yesterday_or_before = datetime.now() - timedelta(days=1)
+        open_sessions = self.search([
+            ('state', '=', 'open'),
+            ('session_start', '<=', fields.Datetime.end_of(yesterday_or_before, 'day'))
+        ])
+        _logger.info("Found %d open sessions to auto-close.", len(open_sessions))
+        for session in open_sessions:
+            session.close_session()
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -1098,6 +1232,8 @@ class MaintenanceForm(models.Model):
     _inherit = "maintenance.form"
     
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False, ondelete='set null')
+    return_request_id = fields.Many2one('ice.return.request', string='Return Request', readonly=True, copy=False, ondelete='set null')
+
 
     def action_stop(self):
         """Override to set loading request state to 'car_checking' when stopping the maintenance form."""
@@ -1105,6 +1241,9 @@ class MaintenanceForm(models.Model):
         if self.loading_request_id:
             self.loading_request_id.write({'state': 'ready_for_loading'})
             self.loading_request_id.car_id.loading_status = 'ready_for_loading'
+        
+        elif self.return_request_id and self.vehicle_id:
+            self.vehicle_id.write({'loading_status': 'available'})
         return res
 
     

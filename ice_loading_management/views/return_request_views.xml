@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="seq_ice_return_request" model="ir.sequence">
+            <field name="name">Ice Return Request</field>
+            <field name="code">ice.return.request</field>
+            <field name="prefix">RR</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="view_ice_return_request_form" model="ir.ui.view">
+            <field name="name">ice.return.request.form</field>
+            <field name="model">ice.return.request</field>
+            <field name="arch" type="xml">
+                <form string="Return Request">
+                    <header>
+                        <button name="action_start_return" string="Start Return" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                        <button name="action_open_warehouse_return_wizard" string="Process Warehouse Return" type="object" invisible="state != 'warehouse_check'"/>
+                        <button name="action_process_payment" string="Process Payment" type="object" invisible="state != 'payment'"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,warehouse_check,car_check,payment,done"/>
+                    </header>
+                    <sheet>
+                        <h1><field name="name"/></h1>
+                        <group>
+                            <field name="salesman_id"/>
+                            <field name="date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                         <notebook>
+                            <page string="Loading Requests">
+                                <field name="loading_request_ids"/>
+                            </page>
+                            <page string="Car Checks">
+                                <field name="car_check_request_ids"/>
+                            </page>
+                             <page string="Payment">
+                                <field name="cash_payment_id"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_ice_return_request_tree" model="ir.ui.view">
+            <field name="name">ice.return.request.tree</field>
+            <field name="model">ice.return.request</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                    <field name="salesman_id"/>
+                    <field name="date"/>
+                    <field name="state" widget="badge" decoration-success="state == 'done'" decoration-warning="state != 'done'"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_ice_return_request" model="ir.actions.act_window">
+            <field name="name">Return Requests</field>
+            <field name="res_model">ice.return.request</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_ice_return_requests"
+                  name="Return Requests"
+                  action="action_ice_return_request"
+                  parent="menu_ice_loading_operations"
+                  sequence="20"/>
+
+    </data>
+</odoo>

@@ -168,7 +168,6 @@
                     <button name="action_print_loading_form" string="Print Loading Form" type="object"
                             class="oe_highlight" invisible="state not in ['plugged']"
                             groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
-                            <!-- invisible="state not in ['loaded','freezer_loaded','freezer_handled']" -->
                     <button name="action_confirm_request" string="Confirm Request" type="object"
                             class="oe_highlight" invisible="state != 'draft'"
                             groups="sales_team.group_sale_salesman_all_leads"/>
@@ -197,11 +196,20 @@
                     <button name="action_change_car" string="Change Car" type="object"
                             invisible="state not in ['draft','confirmed','car_checking']"
                             groups="ice_loading_management.group_fleet_supervisor"/>
+
+                    <button name="action_pause_loading" string="Pause Loading" type="object"
+                            class="btn-warning" invisible="state != 'plugged'"
+                            groups="ice_loading_management.group_fleet_supervisor"/>
+                    
+                    <button name="action_continue_loading" string="Continue Loading" type="object"
+                            class="oe_highlight" invisible="state != 'paused'"
+                            groups="ice_loading_management.group_fleet_supervisor"/>
                     <!-- <button name="action_set_freezer_loaded" string="Set Freezer Loaded" type="object"
                             invisible="state != 'loaded'" groups="stock.group_stock_manager"/>
                     <button name="action_skip_freezer_loading" string="Skip Freezer Loading" type="object"
                             invisible="state != 'loaded'" groups="stock.group_stock_manager"/> -->
-                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,car_checking,ready_for_loading,ice_handled,plugged,in_transit,delivered,done"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,car_checking,ready_for_loading,ice_handled,plugged,paused,in_transit,done"/>
+
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -247,6 +255,8 @@
                             <field name="salesman_id"/>
                             <field name="loading_place_id"/>
                             <field name="dispatch_time"/>
+                            <field name="is_urgent" help="Check this to bypass the 6-hour dispatch time rule. Limited to one per car per day."/>
+
                         </group>
                         <group string="Team Information">
                             <field name="route_id" readonly="1"/>
@@ -254,6 +264,9 @@
                             <field name="loading_priority" groups="sales_team.group_sale_manager"/>
                             <field name="total_weight" readonly="1" widget="float" digits="[16,2]"/>
                         </group>
+                    </group>
+                    <group string="Pause Information" invisible="state != 'paused'">
+                        <field name="pause_reason" readonly="1"/>
                     </group>
 
                     <group string="Special Instructions">
