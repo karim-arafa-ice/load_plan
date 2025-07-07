@@ -18,6 +18,7 @@
         'mail',
         'maintenance_app',
         'freezers_management',
+        'sale_management',
         'sales_team',
         'rest_api',
         'account',
@@ -37,6 +38,7 @@
         'wizard/quantity_change_wizard.xml',
         'wizard/pause_reason_wizard.xml', # New
         'wizard/warehouse_return_wizard.xml', # New
+        'wizard/delivery_wizard.xml',  # New
 
         # Views
         'views/fleet_vehicle.xml',

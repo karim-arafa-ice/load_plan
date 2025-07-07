@@ -21,6 +21,8 @@ class FleetVehicle(models.Model):
         string='Total Weight Capacity (kg)',
         
     )
+    is_concrete = fields.Boolean(string='Is Concrete')
+    location_id = fields.Many2one('stock.location', string='Location', domain="[('usage', '=', 'internal')]")
 
     # @api.depends('ice_4kg_capacity', 'ice_25kg_capacity', 'ice_cup_capacity')
     # def _compute_total_weight_capacity(self):

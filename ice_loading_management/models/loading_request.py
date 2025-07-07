@@ -104,6 +104,54 @@ class LoadingRequest(models.Model):
 
     is_urgent = fields.Boolean(string="Urgent Request", default=False, help="Bypass 6-hour dispatch rule.")
     pause_reason = fields.Text(string="Pause Reason", readonly=True)
+    is_concrete = fields.Boolean(related='car_id.is_concrete', string='Is Concrete', store=True, readonly=True)
+    customer_line_ids = fields.One2many('ice.loading.customer.line', 'loading_request_id', string='Customer Lines')
+
+    @api.onchange('is_concrete')
+    def _onchange_is_concrete(self):
+        self.product_line_ids = [(5, 0, 0)]
+        self.customer_line_ids = [(5, 0, 0)]
+        if self.is_concrete:
+            # Clear existing product lines
+            
+            # Logic to handle concrete-specific fields
+            pass
+        else:
+            # Logic for non-concrete requests
+            self.product_line_ids = self._get_default_product_lines_values()
+
+    def _get_default_product_lines_values(self):
+        """
+        Refactored method: returns a list of values for product lines
+        without creating them. This can be used by both onchange and create.
+        """
+        product_tmpls = [
+            self.env.company.product_4kg_id,
+            self.env.company.product_25kg_id,
+            self.env.company.product_cup_id,
+        ]
+        lines_values = []
+        for template in product_tmpls:
+            if template and template.product_variant_id:
+                lines_values.append((0, 0, {
+                    'product_id': template.product_variant_id.id,
+                    'quantity': 0.0,
+                }))
+        return lines_values
+
+    @api.constrains('car_id', 'dispatch_time')
+    def _check_car_open_request_per_day(self):
+        for request in self:
+            if request.car_id and request.dispatch_time:
+                domain = [
+                    ('car_id', '=', request.car_id.id),
+                    ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
+                    ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
+                    ('state', 'not in', ['done', 'cancelled']),
+                    ('id', '!=', request.id)
+                ]
+                if self.search_count(domain) > 0:
+                    raise ValidationError(_("This car is already in an open request for today."))
 
     @api.constrains('dispatch_time', 'is_urgent')
     def _check_dispatch_time(self):
@@ -553,19 +601,21 @@ class LoadingRequest(models.Model):
 
     @api.model
     def create(self, vals):
+        # Set sequence, team leader, etc.
         if vals.get('name', 'New') == 'New':
             vals['name'] = self.env['ir.sequence'].next_by_code('ice.loading.request') or 'New'
         if 'salesman_id' in vals and vals['salesman_id']:
-
-            team = self.env['crm.team'].search([('member_ids', 'in', [vals['salesman_id']])], limit=1)
+            team = self.env['crm.team']._get_default_team_id(user_id=vals['salesman_id'])
             if team:
                 vals['route_id'] = team.id
                 vals['team_leader_id'] = team.user_id.id
-                
-        
+
+        # Add default product lines if not a concrete request
+        if not vals.get('is_concrete'):
+             if not vals.get('product_line_ids'):
+                vals['product_line_ids'] = self._get_default_product_lines_values()
+
         request = super().create(vals)
-        request._create_default_product_lines()
-        
         return request
     
     def _create_default_product_lines(self):
@@ -672,32 +722,57 @@ class LoadingRequest(models.Model):
 
     def _create_internal_transfer(self):
         """Create internal transfer for loading request"""
-        if not self.product_line_ids:
+        if not self.product_line_ids and not self.is_concrete:
             raise UserError(_("Please add products to the loading request before creating an internal transfer."))
-        
+
         move_lines = []
-        for line in self.product_line_ids:
-            if line.quantity > 0:
+        source_location_id = False
+
+        if self.is_concrete:
+            # For concrete, the source location comes from the car
+            if not self.car_id.location_id:
+                raise UserError(_("The selected concrete car does not have a Source Location configured."))
+            source_location_id = self.car_id.location_id.id
+            
+            # The product is always the 25kg one for concrete requests
+            product = self.env['product.product'].search([('ice_product_type', '=', '25kg')], limit=1)
+            if not product:
+                raise UserError(_("The default '25kg Ice' product is not configured."))
+            
+            # Total quantity is summed from customer lines
+            total_quantity = sum(self.customer_line_ids.mapped('quantity'))
+            if total_quantity > 0:
                 move_lines.append((0, 0, {
-                    'name': line.product_id.name,
-                    'product_id': line.product_id.id,
-                    'product_uom_qty': line.quantity,
-                    'quantity': line.quantity,
-                    'product_uom': line.product_id.uom_id.id,
-                    'location_id': self.loading_place_id.loading_location_id.id,
-                    'location_dest_id': self.salesman_id.accessible_location_id.id,
+                    'name': product.name,
+                    'product_id': product.id,
+                    'product_uom_qty': total_quantity,
+                    'product_uom': product.uom_id.id,
                 }))
+        else:
+            # For regular requests, source location comes from the loading place
+            source_location_id = self.loading_place_id.loading_location_id.id
+            for line in self.product_line_ids:
+                if line.quantity > 0:
+                    move_lines.append((0, 0, {
+                        'name': line.product_id.name,
+                        'product_id': line.product_id.id,
+                        'product_uom_qty': line.quantity,
+                        'product_uom': line.product_id.uom_id.id,
+                    }))
         
         if not move_lines:
-            raise UserError(_("No products with quantity greater than zero found. Cannot create internal transfer."))
-        picking_type_warehouse = self.env['stock.warehouse'].search([('lot_stock_id', '=', self.loading_place_id.loading_location_id.id)], limit=1)
+            raise UserError(_("Cannot create a transfer with zero quantity. Please add quantities to the lines."))
+
         picking_type = self.env['stock.picking.type'].search([
-            ('warehouse_id', '=', picking_type_warehouse.id),
             ('code', '=', 'internal'),
+            ('warehouse_id.lot_stock_id', '=', source_location_id)
         ], limit=1)
+        if not picking_type:
+            raise UserError(_("No internal transfer operation type found for the source location."))
+
         picking = self.env['stock.picking'].create({
             'picking_type_id': picking_type.id,
-            'location_id': self.loading_place_id.loading_location_id.id,
+            'location_id': source_location_id,
             'location_dest_id': self.salesman_id.accessible_location_id.id,
             'move_ids_without_package': move_lines,
             'origin': self.name,
@@ -1180,7 +1255,15 @@ class StockPicking(models.Model):
         res = super(StockPicking, self).button_validate()
         
         if self.loading_request_id:
-            self.loading_request_id.write({'state': 'ice_handled'})
+            request = self.loading_request_id
+            request.write({'state': 'ice_handled'})
+
+            if request.is_concrete:
+                # Create deliveries for each customer line
+                for line in request.customer_line_ids.filtered(lambda l: l.quantity > 0):
+                    if line.sale_order_id:
+                        picking = line.sale_order_id.action_create_delivery(line.quantity)
+                        line.delivery_id = picking.id
         
         return res
     

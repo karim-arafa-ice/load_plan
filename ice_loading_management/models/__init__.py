@@ -6,3 +6,5 @@ from . import product_product
 from . import res_config_settings
 from . import account_journal
 from . import return_request
+from . import loading_customer_line
+from . import sale_order

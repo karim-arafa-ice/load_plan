@@ -17,3 +17,6 @@ access_ice_return_request_line_user,ice.return.request.line.user,model_ice_retur
 access_ice_pause_reason_wizard_user,ice.pause.reason.wizard.user,model_ice_pause_reason_wizard,base.group_user,1,1,1,1
 access_ice_warehouse_return_wizard_user,ice.warehouse.return.wizard.user,model_ice_warehouse_return_wizard,base.group_user,1,1,1,1
 access_ice_warehouse_return_wizard_line_user,ice.warehouse.return.wizard.line.user,model_ice_warehouse_return_wizard_line,base.group_user,1,1,1,1
+access_delivery_wizard_user,delivery.wizard.user,model_delivery_wizard,base.group_user,1,1,1,1
+access_delivery_wizard_line_user,delivery.wizard.line.user,model_delivery_wizard_line,base.group_user,1,1,1,1
+access_ice_loading_customer_line.user,ice.loading.customer.line.user,model_ice_loading_customer_line,base.group_user,1,1,1,1
