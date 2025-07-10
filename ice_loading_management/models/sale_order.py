@@ -3,6 +3,23 @@ from odoo import models, fields, api, _
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    open_order = fields.Boolean(
+        string='Open Order',
+        compute='_compute_open_order',
+        store=True,
+        help='True if any order line has remaining quantity to be delivered'
+    )
+    
+    @api.depends('order_line.qty_delivered', 'order_line.product_uom_qty')
+    def _compute_open_order(self):
+        for order in self:
+            open_order = False
+            for line in order.order_line:
+                if line.qty_delivered != line.product_uom_qty:
+                    open_order = True
+                    break
+            order.open_order = open_order
+
     def action_create_delivery(self, quantity_to_deliver):
         self.ensure_one()
         

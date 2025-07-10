@@ -14,17 +14,18 @@ class LoadingCustomerLine(models.Model):
         # Search for all potentially relevant sale orders
         all_orders = self.env['sale.order'].search([
             ('state', 'in', ['sale', 'done']),
+            ('open_order', '=', True),  # Assuming 'open_order' is a computed field indicating open orders
             
         ])
         # ('order_line.qty_delivered', '!=', order_line.product_uom_qty)
 
         # Filter in Python to find orders with open lines
-        open_orders = all_orders.filtered(
-            lambda order: any(line.qty_delivered < line.product_uom_qty for line in order.order_line)
-        )
+        # open_orders = all_orders.filtered(
+        #     lambda order: any(line.qty_delivered < line.product_uom_qty for line in order.order_line)
+        # )
 
         # Get the unique partners from these orders
-        customer_ids = open_orders.mapped('partner_id').ids
+        customer_ids = all_orders.mapped('partner_id').ids
         return [('customer_rank', '>', 0), ('id', 'in', customer_ids)]
 
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', required=True, ondelete='cascade')

@@ -36,14 +36,16 @@ class LoadingProductLine(models.Model):
     @api.depends('loading_request_id.car_id', 'product_type')
     def _compute_max_capacity_for_product(self):
         for line in self:
+            
             if line.loading_request_id.car_id and line.product_type:
+                product = self.env['product.template'].search([('ice_product_type', '=', line.product_type)], limit=1)
                 car = line.loading_request_id.car_id
                 if line.product_type == '4kg':
-                    line.max_capacity_for_product = car.ice_4kg_capacity
+                    line.max_capacity_for_product = car.ice_4kg_capacity * product.weight if product.weight else car.ice_4kg_capacity
                 elif line.product_type == '25kg':
-                    line.max_capacity_for_product = car.ice_25kg_capacity
+                    line.max_capacity_for_product = car.ice_25kg_capacity * product.weight if product.weight else car.ice_25kg_capacity
                 elif line.product_type == 'cup':
-                    line.max_capacity_for_product = car.ice_cup_capacity
+                    line.max_capacity_for_product = car.ice_cup_capacity * product.weight if product.weight else car.ice_cup_capacity
                 else:
                     line.max_capacity_for_product = 0.0
             else:
@@ -67,7 +69,7 @@ class LoadingProductLine(models.Model):
         """When full load is checked, set quantity to maximum capacity"""
         if self.is_full_load and self.product_id and self.loading_request_id.car_id:
             car = self.loading_request_id.car_id
-            product_weight = self.product_id.weight or 1.0  # Avoid division by zero
+            # product_weight = self.product_id.weight or 1.0  # Avoid division by zero
             
             if self.product_type == '4kg':
                 max_capacity = car.ice_4kg_capacity
@@ -79,8 +81,8 @@ class LoadingProductLine(models.Model):
                 max_capacity = 0.0
             
             # Calculate maximum quantity based on weight capacity
-            max_quantity = max_capacity / product_weight if product_weight > 0 else 0.0
-            self.quantity = max_quantity
+            # max_quantity = max_capacity / product_weight if product_weight > 0 else 0.0
+            self.quantity = max_capacity
     
  # EDIT 4: Enhanced capacity validation with specific messages
     @api.constrains('computed_weight', 'quantity', 'product_id', 'is_full_load')
@@ -90,7 +92,8 @@ class LoadingProductLine(models.Model):
                 continue
             
             # Check if product has ice product type configured
-            if line.product_id and not line.product_id.ice_product_type:
+            product = self.env['product.template'].search([('ice_product_type', '=', line.product_type)], limit=1)
+            if line.product_id and not product.ice_product_type:
                 raise ValidationError(_(
                     'Product "%s" does not have an ice product type configured. Please set the ice product type in the product form.'
                 ) % line.product_id.name)
@@ -98,17 +101,17 @@ class LoadingProductLine(models.Model):
             car = line.loading_request_id.car_id
             
             # Check individual product capacity based on product type
-            if line.product_type == '4kg' and line.computed_weight > car.ice_4kg_capacity:
+            if line.product_type == '4kg' and line.computed_weight > car.ice_4kg_capacity * product.weight if product.weight else car.ice_4kg_capacity:
                 raise ValidationError(_(
                     '4kg Ice weight (%.2f kg) exceeds car capacity (%.2f kg) for car %s'
                 ) % (line.computed_weight, car.ice_4kg_capacity, car.license_plate or car.name))
-            
-            elif line.product_type == '25kg' and line.computed_weight > car.ice_25kg_capacity:
+
+            elif line.product_type == '25kg' and line.computed_weight > car.ice_25kg_capacity * product.weight if product.weight else car.ice_25kg_capacity:
                 raise ValidationError(_(
                     '25kg Ice weight (%.2f kg) exceeds car capacity (%.2f kg) for car %s'
                 ) % (line.computed_weight, car.ice_25kg_capacity, car.license_plate or car.name))
-            
-            elif line.product_type == 'cup' and line.computed_weight > car.ice_cup_capacity:
+
+            elif line.product_type == 'cup' and line.computed_weight > car.ice_cup_capacity * product.weight if product.weight else car.ice_cup_capacity:
                 raise ValidationError(_(
                     'Ice Cup weight (%.2f kg) exceeds car capacity (%.2f kg) for car %s'
                 ) % (line.computed_weight, car.ice_cup_capacity, car.license_plate or car.name))
@@ -126,21 +129,23 @@ class LoadingProductLine(models.Model):
         """Check capacity when quantity changes"""
         if self.quantity and self.product_id and self.loading_request_id.car_id:
             car = self.loading_request_id.car_id
-            product_weight = self.product_id.weight or 0.0
-            computed_weight = self.quantity * product_weight
+            product = self.env['product.template'].search([('ice_product_type', '=', self.product_type)], limit=1)
+            # product_weight = self.product_id.weight or 0.0
+            computed_weight = self.quantity * product.weight if product.weight else 0.0
             
+
             # Check individual capacity
             warning_message = None
-            if self.product_type == '4kg' and computed_weight > car.ice_4kg_capacity:
+            if self.product_type == '4kg' and computed_weight > car.ice_4kg_capacity * product.weight if product.weight else car.ice_4kg_capacity:
                 warning_message = _('4kg Ice weight (%.2f kg) exceeds car capacity (%.2f kg)') % (
-                    computed_weight, car.ice_4kg_capacity)
-            elif self.product_type == '25kg' and computed_weight > car.ice_25kg_capacity:
+                    computed_weight, car.ice_4kg_capacity * product.weight)
+            elif self.product_type == '25kg' and computed_weight > car.ice_25kg_capacity * product.weight if product.weight else car.ice_25kg_capacity:
                 warning_message = _('25kg Ice weight (%.2f kg) exceeds car capacity (%.2f kg)') % (
-                    computed_weight, car.ice_25kg_capacity)
-            elif self.product_type == 'cup' and computed_weight > car.ice_cup_capacity:
+                    computed_weight, car.ice_25kg_capacity * product.weight)
+            elif self.product_type == 'cup' and computed_weight > car.ice_cup_capacity * product.weight if product.weight else car.ice_cup_capacity:
                 warning_message = _('Ice Cup weight (%.2f kg) exceeds car capacity (%.2f kg)') % (
-                    computed_weight, car.ice_cup_capacity)
-            
+                    computed_weight, car.ice_cup_capacity * product.weight if product.weight else car.ice_cup_capacity)
+
             # Check total capacity
             total_weight = sum(self.loading_request_id.product_line_ids.mapped('computed_weight')) - self.computed_weight + computed_weight
             if total_weight > car.total_weight_capacity:

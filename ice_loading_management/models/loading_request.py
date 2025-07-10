@@ -212,14 +212,15 @@ class LoadingRequest(models.Model):
     def _onchange_full_load(self):
         """When full load is checked, set quantity to max capacity for each product"""
         for line in self.product_line_ids:
-            product_weight = line.product_id.weight or 1.0 
+            # product = self.env['product.template'].search([('ice_product_type', '=', line.product_type)], limit=1)
+            # product_weight = product.weight or 1.0
             if line.is_full_load:
                 if line.product_type == '4kg':
-                    line.quantity = (self.car_id.ice_4kg_capacity / product_weight) if product_weight > 0 else 0.0
+                    line.quantity = self.car_id.ice_4kg_capacity
                 elif line.product_type == '25kg':
-                    line.quantity = (self.car_id.ice_25kg_capacity / product_weight) if product_weight > 0 else 0.0
+                    line.quantity = self.car_id.ice_25kg_capacity
                 elif line.product_type == 'cup':
-                    line.quantity = (self.car_id.ice_cup_capacity / product_weight) if product_weight > 0 else 0.0
+                    line.quantity = self.car_id.ice_cup_capacity
             elif line.quantity < 0:
                 raise UserError(_("Quantity cannot be negative. Please enter a valid quantity."))
             elif line.quantity > 0:
@@ -601,6 +602,7 @@ class LoadingRequest(models.Model):
 
     @api.model
     def create(self, vals):
+        _logger.info("Creating loading nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnrequest with values: %s", vals)
         # Set sequence, team leader, etc.
         if vals.get('name', 'New') == 'New':
             vals['name'] = self.env['ir.sequence'].next_by_code('ice.loading.request') or 'New'
@@ -609,11 +611,14 @@ class LoadingRequest(models.Model):
             if team:
                 vals['route_id'] = team.id
                 vals['team_leader_id'] = team.user_id.id
+        _logger.info("Creating loading request with values: %s", vals)
 
         # Add default product lines if not a concrete request
         if not vals.get('is_concrete'):
-             if not vals.get('product_line_ids'):
-                vals['product_line_ids'] = self._get_default_product_lines_values()
+            _logger.info("Creating default product lines for loading request %s", vals.get('name'))
+            if not vals.get('product_line_ids'):
+                _logger.info("No product lines provided, creating default ones.")
+            vals['product_line_ids'] = self._get_default_product_lines_values()
 
         request = super().create(vals)
         return request
@@ -727,12 +732,13 @@ class LoadingRequest(models.Model):
 
         move_lines = []
         source_location_id = False
-
+        _logger.info("Creating internal transfer for loading request %s", self.id)
         if self.is_concrete:
+            _logger.info("Creating internal transfer for concrete loading request %s", self.id)
             # For concrete, the source location comes from the car
             if not self.car_id.location_id:
                 raise UserError(_("The selected concrete car does not have a Source Location configured."))
-            source_location_id = self.car_id.location_id.id
+            source_location_id = self.loading_place_id.loading_location_id.id
             
             # The product is always the 25kg one for concrete requests
             product = self.env['product.product'].search([('ice_product_type', '=', '25kg')], limit=1)
@@ -747,8 +753,11 @@ class LoadingRequest(models.Model):
                     'product_id': product.id,
                     'product_uom_qty': total_quantity,
                     'product_uom': product.uom_id.id,
+                    'location_id': source_location_id,
+                    'location_dest_id': self.car_id.location_id.id,
                 }))
         else:
+            _logger.info("Creating internal transfer for regular loading request %s", self.id)
             # For regular requests, source location comes from the loading place
             source_location_id = self.loading_place_id.loading_location_id.id
             for line in self.product_line_ids:
@@ -758,6 +767,8 @@ class LoadingRequest(models.Model):
                         'product_id': line.product_id.id,
                         'product_uom_qty': line.quantity,
                         'product_uom': line.product_id.uom_id.id,
+                        'location_id': source_location_id,
+                        'location_dest_id': self.salesman_id.accessible_location_id.id,
                     }))
         
         if not move_lines:
@@ -767,9 +778,10 @@ class LoadingRequest(models.Model):
             ('code', '=', 'internal'),
             ('warehouse_id.lot_stock_id', '=', source_location_id)
         ], limit=1)
+        _logger.info("Found picking type %s for source location %s", picking_type.name if picking_type else 'None', source_location_id)
         if not picking_type:
             raise UserError(_("No internal transfer operation type found for the source location."))
-
+        _logger.info("Creating stock picking for loading request %s", self.id)
         picking = self.env['stock.picking'].create({
             'picking_type_id': picking_type.id,
             'location_id': source_location_id,
@@ -779,6 +791,7 @@ class LoadingRequest(models.Model):
             'transfer_vehicle': self.car_id.id,
             'loading_request_id': self.id,
         })
+        _logger.info("Stock picking created with ID %s", picking.id)
         
         self.internal_transfer_id = picking.id
         picking.action_confirm()

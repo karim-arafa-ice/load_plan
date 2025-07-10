@@ -12,9 +12,9 @@ class FleetVehicle(models.Model):
     ], string='Loading Status', default='available')
 
     # Product capacity fields - corrected names
-    ice_4kg_capacity = fields.Float(string='Capacity for 4kg Ice (KG)', default=0.0)
-    ice_25kg_capacity = fields.Float(string='Capacity for 25kg Ice (KG)', default=0.0)
-    ice_cup_capacity = fields.Float(string='Capacity for Ice Cups (KG)', default=0.0)
+    ice_4kg_capacity = fields.Float(string='Capacity for 4kg Ice (PCs)', default=0.0)
+    ice_25kg_capacity = fields.Float(string='Capacity for 25kg Ice (PCs)', default=0.0)
+    ice_cup_capacity = fields.Float(string='Capacity for Ice Cups (PCs)', default=0.0)
     
     # Computed total capacity
     total_weight_capacity = fields.Float(
