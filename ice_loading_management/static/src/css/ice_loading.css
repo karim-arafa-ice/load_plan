@@ -8,10 +8,10 @@
     color: white !important;
 }
 
-.o_field_badge[data-value="confirmed"] {
+/* .o_field_badge[data-value="confirmed"] {
     background-color: #17a2b8 !important;
     color: white !important;
-}
+} */
 
 .o_field_badge[data-value="car_checking"] {
     background-color: #ffc107 !important;

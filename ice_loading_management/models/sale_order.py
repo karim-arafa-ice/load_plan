@@ -3,6 +3,49 @@ from odoo import models, fields, api, _
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
+    loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False)
+    car_id = fields.Many2one('fleet.vehicle', string='Car', readonly=True, copy=False)
+    is_concrete = fields.Boolean(string="Concrete Order")
+
+    open_order = fields.Boolean(
+        string='Open Order',
+        compute='_compute_open_order',
+        store=True,
+        help='True if any order line has remaining quantity to be delivered'
+    )
+    # ... (rest of the fields)
+
+    def write(self,vals):
+        if "is_concrete" in vals:
+            warehouse = self.env['stock.warehouse'].search([('lot_stock_id','=',self.env.company.ice_location_id.id)])
+            vals['warehouse_id'] = warehouse.id
+        res = super(SaleOrder, self).write(vals)
+        return res
+
+
+    @api.model
+    def create(self, vals):
+        if 'is_concrete' in vals:
+            warehouse = self.env['stock.warehouse'].search([('lot_stock_id','=',self.env.company.ice_location_id.id)])
+            vals['warehouse_id'] = warehouse.id
+
+        if 'partner_id' in vals:
+            salesman = self.env['res.users'].search([('partner_id', '=', vals['partner_id'])], limit=1)
+            if salesman:
+                active_session = self.env['ice.driver.session'].search([
+                    ('driver_id', '=', salesman.id),
+                    ('is_active', '=', True)
+                ], order='session_start desc', limit=1)
+
+                if active_session:
+                    vals.update({
+                        'session_id': active_session.id,
+                        'loading_request_id': active_session.loading_request_id.id,
+                        'car_id': active_session.car_id.id,
+                    })
+        return super(SaleOrder, self).create(vals)
+
     open_order = fields.Boolean(
         string='Open Order',
         compute='_compute_open_order',

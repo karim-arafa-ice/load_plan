@@ -132,7 +132,7 @@
         <field name="name">Urgent Loading Requests</field>
         <field name="res_model">ice.loading.request</field>
         <field name="view_mode">kanban,tree,form</field>
-        <field name="domain">[('loading_priority', '=', 1), ('state', 'not in', ['cancelled', 'done'])]</field>
+        <field name="domain">[('is_urgent', '=', True), ('state', 'not in', ['cancelled', 'done'])]</field>
         <field name="context">{'search_default_active_states': 1}</field>
     </record>
 

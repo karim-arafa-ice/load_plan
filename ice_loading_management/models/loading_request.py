@@ -15,7 +15,7 @@ class LoadingRequest(models.Model):
     name = fields.Char(string='Reference', required=True, copy=False, readonly=True, default='New')
     state = fields.Selection([
         ('draft', 'Draft'),
-        ('confirmed', 'Confirmed'),
+        # ('confirmed', 'Confirmed'),
         ('car_checking', 'Car Checking'),
         ('ready_for_loading', 'Ready for Loading'),
         # ('loaded', 'Loaded'),
@@ -31,6 +31,9 @@ class LoadingRequest(models.Model):
         ('done', 'Done'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
+
+    session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
+
     
     # Main fields from requirements
     car_id = fields.Many2one('fleet.vehicle', string='Car', required=True, 
@@ -147,7 +150,7 @@ class LoadingRequest(models.Model):
                     ('car_id', '=', request.car_id.id),
                     ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
                     ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
-                    ('state', 'not in', ['done', 'cancelled']),
+                    ('state', 'not in', ['done', 'cancelled','draft']),
                     ('id', '!=', request.id)
                 ]
                 if self.search_count(domain) > 0:
@@ -183,18 +186,53 @@ class LoadingRequest(models.Model):
                 ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
                 ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
                 ('id', '!=', request.id),
-                ('state', '!=', 'cancelled')
+                ('state', '!=', 'cancelled'),
+                ('is_concrete','=',False)
             ]
             if self.search_count(domain) >= 2:
                 raise ValidationError(_("A salesman can only have a maximum of two loading requests per day."))
             
     @api.constrains('salesman_id', 'state')
+    def _check_salesman_open_sessions(self):
+        for request in self:
+            if request.state == 'in_transit' and not request.is_concrete:
+                today_start = fields.Datetime.now().replace(hour=0, minute=0, second=0)
+                today_end = fields.Datetime.now().replace(hour=23, minute=59, second=59)
+                open_sessions = self.env['ice.driver.session'].search_count([
+                    ('driver_id', '=', request.salesman_id.id),
+                    ('session_start', '>=', today_start),
+                    ('session_start', '<=', today_end),
+                    ('is_active', '=', True)
+                ])
+                if open_sessions >= 2:
+                    raise ValidationError(_("A salesman can only have a maximum of two open sessions per day."))
+                
+    def action_open_session(self):
+        self.ensure_one()
+        if self.state != 'in_transit':
+            raise UserError(_("You can only open a session when the request is in 'In Transit' state."))
+
+        # Create a new driver session
+        session = self.env['ice.driver.session'].create({
+            'driver_id': self.salesman_id.id,
+            'car_id': self.car_id.id,
+            'loading_request_id': self.id,
+        })
+
+        self.write({
+            'state': 'delivering',
+            'session_id': session.id
+        })
+
+        self.message_post(body=_("Driver session started by %s.") % self.env.user.name)
+    
+    @api.constrains('salesman_id', 'state')
     def _check_salesman_open_returns(self):
         for request in self:
-            if request.state == 'confirmed': # Check on confirmation
+            if request.state == 'car_checking': # Check on confirmation
                 open_return = self.env['ice.return.request'].search([
                     ('salesman_id', '=', request.salesman_id.id),
-                    ('state', '!=', 'done')
+                    ('state', '!=', 'done','is_concrete','=',False)
                 ], limit=1)
                 if open_return:
                     raise ValidationError(_("This salesman has an open return request (%s) and cannot proceed with new loadings.") % open_return.name)
@@ -202,7 +240,7 @@ class LoadingRequest(models.Model):
     @api.constrains('salesman_id', 'state')
     def _check_salesman_credit_limit(self):
         for request in self:
-             if request.state == 'confirmed':
+             if request.state == 'car_checking':
                 journal = request.salesman_id.journal_id
                 if journal.credit_limit > 0 and journal.balance > journal.credit_limit:
                      raise ValidationError(_("Salesman has exceeded the credit limit of %s. Current balance is %s.") % (journal.credit_limit, journal.balance))
@@ -785,10 +823,12 @@ class LoadingRequest(models.Model):
         picking = self.env['stock.picking'].create({
             'picking_type_id': picking_type.id,
             'location_id': source_location_id,
-            'location_dest_id': self.salesman_id.accessible_location_id.id,
+            'location_dest_id': self.car_id.location_id.id if self.is_concrete else self.salesman_id.accessible_location_id.id,
             'move_ids_without_package': move_lines,
             'origin': self.name,
             'transfer_vehicle': self.car_id.id,
+            'loading_driver_id': self.salesman_id.id,
+            'car_id': self.car_id.id,
             'loading_request_id': self.id,
         })
         _logger.info("Stock picking created with ID %s", picking.id)
@@ -1187,8 +1227,8 @@ class DriverSession(models.Model):
 
     def close_session(self):
         """
-        Closes the session and creates a single consolidated return request
-        for the salesman for the entire day if one doesn't already exist.
+        Closes the session. The creation of the return request is now
+        handled manually from the Return Request screen.
         """
         for session in self:
             session.write({
@@ -1196,8 +1236,20 @@ class DriverSession(models.Model):
                 'is_active': False,
                 'state': 'closed',
             })
-            # Create the consolidated return request for the day
-            self._create_daily_return_request(session.driver_id, session.session_start.date())
+
+    # def close_session(self):
+    #     """
+    #     Closes the session and creates a single consolidated return request
+    #     for the salesman for the entire day if one doesn't already exist.
+    #     """
+    #     for session in self:
+    #         session.write({
+    #             'session_end': fields.Datetime.now(),
+    #             'is_active': False,
+    #             'state': 'closed',
+    #         })
+    #         # Create the consolidated return request for the day
+    #         self._create_daily_return_request(session.driver_id, session.session_start.date())
 
     def _create_daily_return_request(self, salesman, return_date):
         """
@@ -1259,6 +1311,8 @@ class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False, ondelete='set null')
+    loading_driver_id = fields.Many2one('res.users',string="Driver",readonly=True)
+    car_id = fields.Many2one('fleet.vehicle',string="Car",readonly=True)
     
     def button_validate(self):
         # Storekeeper validation check

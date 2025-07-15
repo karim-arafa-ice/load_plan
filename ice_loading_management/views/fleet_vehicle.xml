@@ -203,8 +203,12 @@
                             class="oe_highlight" invisible="state != 'ice_handled'"
                             groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
                     <button name="action_change_car" string="Change Car" type="object"
-                            invisible="state not in ['draft','confirmed','car_checking']"
+                            invisible="state not in ['draft','car_checking']"
                             groups="ice_loading_management.group_fleet_supervisor"/>
+
+                    <button name="action_open_session" string="Open Session" type="object"
+                        class="oe_highlight" invisible="state != 'in_transit'"
+                        groups="sales_team.group_sale_salesman"/>
 
                     <button name="action_pause_loading" string="Pause Loading" type="object"
                             class="btn-warning" invisible="state != 'plugged'"
@@ -217,7 +221,7 @@
                             invisible="state != 'loaded'" groups="stock.group_stock_manager"/>
                     <button name="action_skip_freezer_loading" string="Skip Freezer Loading" type="object"
                             invisible="state != 'loaded'" groups="stock.group_stock_manager"/> -->
-                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,car_checking,ready_for_loading,ice_handled,plugged,paused,in_transit,done"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,car_checking,ready_for_loading,ice_handled,plugged,paused,in_transit,done"/>
 
                 </header>
                 <sheet>
@@ -340,9 +344,9 @@
                         <page string="Customer Lines" name="customer_lines" invisible="not is_concrete">
                             <field name="customer_line_ids">
                                 <tree editable="bottom">
-                                    <field name="customer_id"/>
-                                    <field name="sale_order_id"/>
-                                    <field name="remaining_qty"/>
+                                    <field name="customer_id" force_save="1" />
+                                    <field name="sale_order_id" force_save="1"/>
+                                    <field name="remaining_qty" force_save="1" />
                                     <field name="quantity"/>
                                      <button name="button_print_delivery_slip" type="object" string="Print Delivery Slip" icon="fa-print"/>
                                 </tree>
@@ -432,7 +436,7 @@
         <field name="model">ice.loading.request</field>
         <field name="arch" type="xml">
             <tree string="Ice Loading Requests" 
-                  decoration-info="state in ['draft', 'confirmed']" 
+                  decoration-info="state in ['draft']" 
                   decoration-warning="state in ['car_checking', 'ready_for_loading']"
                   decoration-success="state in ['ice_handled']"
                   decoration-primary="state == 'plugged'"

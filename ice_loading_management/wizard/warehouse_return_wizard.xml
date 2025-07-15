@@ -5,12 +5,15 @@
         <field name="model">ice.warehouse.return.wizard</field>
         <field name="arch" type="xml">
             <form string="Process Warehouse Return">
+                <div class="alert alert-info" role="alert">
+                    Ensure that the quantities entered below exactly match what was returned from the van to complete the process.
+                </div>
                 <field name="return_request_id" invisible="1"/>
                 <field name="line_ids">
                     <tree editable="bottom">
-                        <field name="product_id"/>
-                        <field name="loaded_quantity"/>
-                        <field name="current_quantity"/>
+                        <field name="product_id" readonly="1"/>
+                        <field name="loaded_quantity" readonly="1"/>
+                        <field name="current_quantity" readonly="1" force_save="1"/>
                         <field name="returned_quantity"/>
                         <field name="scrap_quantity"/>
                     </tree>

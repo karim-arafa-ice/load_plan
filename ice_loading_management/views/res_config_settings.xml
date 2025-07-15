@@ -30,6 +30,11 @@
                                    domain="[('usage', '=', 'internal')]"
                                    options="{'no_create': True, 'no_edit': True}"/>
                         </setting>
+                        <setting string="Default Ice Location" help="Default location for Ice  operations">
+                            <field name="default_ice_location_id" 
+                                   domain="[('usage', '=', 'internal')]"
+                                   options="{'no_create': True, 'no_edit': True}"/>
+                        </setting>
                     </block>
                 </app>
             </form>

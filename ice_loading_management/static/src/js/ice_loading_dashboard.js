@@ -322,7 +322,7 @@ export class IceLoadingDashboard extends Component {
     getStateLabel(state) {
         const labels = {
             'draft': 'Draft',
-            'confirmed': 'Confirmed',
+            // 'confirmed': 'Confirmed',
             'car_checking': 'Car Checking',
             'ready_for_loading': 'Ready for Loading',
             // 'loaded': 'Loaded',
@@ -340,7 +340,7 @@ export class IceLoadingDashboard extends Component {
     getStateColor(state) {
         const colors = {
             'draft': '#6c757d',
-            'confirmed': '#17a2b8',
+            // 'confirmed': '#17a2b8',
             'car_checking': '#ffc107',
             'ready_for_loading': '#fd7e14',
             // 'loaded': '#20c997',
@@ -597,7 +597,7 @@ window.IceLoadingUtils = {
     getStatusIcon: function(state) {
         const icons = {
             'draft': '📝',
-            'confirmed': '✅',
+            // 'confirmed': '✅',
             'car_checking': '🔧',
             'ready_for_loading': '📦',
             // 'loaded': '🚛',
@@ -806,7 +806,7 @@ class IceLoadingRealtimeUpdater {
     getStatusClass(status) {
         const classes = {
             'draft': 'bg-secondary',
-            'confirmed': 'bg-info',
+            // 'confirmed': 'bg-info',
             'car_checking': 'bg-warning',
             'ready_for_loading': 'bg-primary',
             // 'loaded': 'bg-success',

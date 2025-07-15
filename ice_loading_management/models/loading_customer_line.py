@@ -1,38 +1,65 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
+import logging
 
+_logger = logging.getLogger(__name__)
 class LoadingCustomerLine(models.Model):
     _name = 'ice.loading.customer.line'
     _description = 'Loading Request Customer Line'
 
     def _get_customer_domain(self):
         """
-        This method computes the domain for customers with open sale orders.
-        An open sale order has a delivered quantity less than the ordered quantity.
-        This is the corrected logic.
+        This method computes the domain for customers with open sale orders
+        that belong to the salesman from the loading request.
+        This version is more robust and handles both new and existing records.
         """
-        # Search for all potentially relevant sale orders
-        all_orders = self.env['sale.order'].search([
-            ('state', 'in', ['sale', 'done']),
-            ('open_order', '=', True),  # Assuming 'open_order' is a computed field indicating open orders
-            
-        ])
-        # ('order_line.qty_delivered', '!=', order_line.product_uom_qty)
+        domain = []
+        team_leader_id = False
 
-        # Filter in Python to find orders with open lines
-        # open_orders = all_orders.filtered(
-        #     lambda order: any(line.qty_delivered < line.product_uom_qty for line in order.order_line)
-        # )
+        # First, try to get the salesman from the parent loading_request_id on the line itself.
+        # This works for existing lines.
+        if self.loading_request_id and self.loading_request_id.team_leader_id:
+            team_leader_id = self.loading_request_id.team_leader_id.id
 
-        # Get the unique partners from these orders
-        customer_ids = all_orders.mapped('partner_id').ids
-        return [('customer_rank', '>', 0), ('id', 'in', customer_ids)]
+        # If it's a new line, the loading_request_id might be in the context.
+        # This is the standard Odoo way for one2many fields.
+        elif self.env.context.get('default_loading_request_id'):
+            loading_request = self.env['ice.loading.request'].browse(self.env.context.get('default_loading_request_id'))
+            if loading_request.exists() and loading_request.team_leader_id:
+                team_leader_id = loading_request.team_leader_id.id
+        _logger.info("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww")
+        _logger.info(team_leader_id)
+
+        if team_leader_id:
+            _logger.info("ASSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSAAAAAAAAAAAAAAAAa")
+            # If we found a salesman, find their open orders
+            open_orders = self.env['sale.order'].search([
+                ('state', 'in', ['sale', 'done']),
+                ('open_order', '=', True),
+                ('user_id', '=', team_leader_id)
+            ])
+            _logger.info(open_orders)
+            customer_ids = open_orders.mapped('partner_id').ids
+            _logger.info(customer_ids)
+            domain.append(('id', 'in', customer_ids))
+            _logger.info(domain)
+        else:
+            _logger.info("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+            # If no salesman can be determined, return no customers to prevent showing an incorrect list.
+            domain.append(('id', 'in', []))
+
+        return domain
 
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', required=True, ondelete='cascade')
+    # customer_id = fields.Many2one(
+    #     'res.partner', string='Customer', required=True,
+    #     domain=lambda self: self._get_customer_domain()
+    # )
     customer_id = fields.Many2one(
         'res.partner', string='Customer', required=True,
-        domain=lambda self: self._get_customer_domain()
+        
     )
+
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', readonly=True)
     remaining_qty = fields.Float(string='Remaining Quantity', readonly=True)
     quantity = fields.Float(string='Quantity to Deliver')
@@ -41,11 +68,17 @@ class LoadingCustomerLine(models.Model):
 
     @api.onchange('customer_id')
     def _onchange_customer_id(self):
+        _logger.info("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+        # self._get_customer_domain()
         if self.customer_id:
             # Find the latest open sale order for the selected customer
+            _logger.info("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
+            _logger.info(self.loading_request_id)
+            _logger.info(self.loading_request_id.team_leader_id.id)
             all_orders = self.env['sale.order'].search([
                 ('partner_id', '=', self.customer_id.id),
                 ('state', '=', 'sale'),
+                ('user_id','=',self.loading_request_id.team_leader_id.id)
             ], order='date_order desc')
 
             last_open_order = self.env['sale.order']
@@ -55,12 +88,16 @@ class LoadingCustomerLine(models.Model):
                     break
 
             if last_open_order:
-                self.sale_order_id = last_open_order.id
+                # self.sale_order_id = last_open_order.id
                 remaining_qty = sum(
                     line.product_uom_qty - line.qty_delivered
                     for line in last_open_order.order_line
                 )
-                self.remaining_qty = remaining_qty
+                # self.remaining_qty = remaining_qty
+                self.write({
+                    'sale_order_id': last_open_order.id,
+                    'remaining_qty' : remaining_qty
+                })
             else:
                 self.sale_order_id = False
                 self.remaining_qty = 0

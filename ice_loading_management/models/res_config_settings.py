@@ -25,6 +25,12 @@ class IceSalesConfig(models.Model):
         domain="[('usage', '=', 'internal')]",
         help="Default location for freezer renting operations"
     )
+    ice_location_id = fields.Many2one(
+        'stock.location',
+        string='Default Ice Location',
+        domain="[('usage', '=', 'internal')]",
+        help="Default location for ice operations"
+    )
     
 
 class ResConfigSettings(models.TransientModel):
@@ -48,6 +54,11 @@ class ResConfigSettings(models.TransientModel):
     )
     default_freezer_location_id = fields.Many2one(
         related='company_id.freezer_location_id', 
+        readonly=False,
+        default_model='res.company'
+    )
+    default_ice_location_id = fields.Many2one(
+        related='company_id.ice_location_id', 
         readonly=False,
         default_model='res.company'
     )
