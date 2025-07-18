@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>    <!-- ========================================
+         PRODUCT VIEWS EXTENSION
+         ======================================== -->
+    
+    <!-- Product Form View Extension -->
+    <record id="view_product_template_form_ice_loading" model="ir.ui.view">
+        <field name="name">product.template.form.ice.loading</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <field name="weight" position="after">
+                <field name="ice_product_type" invisible="type != 'product'"/>
+                <field name="pcs_per_bag" invisible="ice_product_type != '4kg'"/>
+                <field name="pcs_per_basket" invisible="ice_product_type != 'cup'"/>
+                <field name="pcs_for_concrete" invisible="ice_product_type != '25kg'"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Product Product Form View Extension -->
+    <record id="view_product_product_form_ice_loading" model="ir.ui.view">
+        <field name="name">product.product.form.ice.loading</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <field name="weight" position="after">
+                <field name="ice_product_type" invisible="type != 'product'"/>
+                <field name="pcs_per_bag" invisible="ice_product_type != '4kg'"/>
+                <field name="pcs_per_basket" invisible="ice_product_type != 'cup'"/>
+                <field name="pcs_for_concrete" invisible="ice_product_type != '25kg'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========================================
+         LOADING REQUEST VIEWS
+         ======================================== -->
+    
+    <!-- Loading Request Form View -->
+    <record id="view_ice_loading_request_form" model="ir.ui.view">
+        <field name="name">ice.loading.request.form</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <form string="Ice Loading Request">
+                <header>
+                    <button name="action_receive_car_keys" string="Receive Car Keys" type="object"
+                            class="oe_highlight" invisible="state != 'plugged'"
+                            help="Move the car to the loading area"/>
+                    <button name="action_print_loading_form" string="Print Loading Form" type="object"
+                            class="oe_highlight" invisible="state not in ['plugged']"
+                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                    <button name="action_confirm_request" string="Confirm Request" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"
+                            groups="sales_team.group_sale_salesman_all_leads"/>
+                    <button name="action_upload_loading_form" string="Upload Signed Loading Form" type="object"
+                            class="oe_highlight" invisible="state not in ['plugged']"
+                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                    <button name="action_loading_worker_wizard" string="Update Loading Quantities" type="object"
+                            class="oe_highlight" invisible="state != 'ready_for_loading'"
+                            groups="ice_loading_management.group_loading_worker"
+                            help="Update the actual loaded quantities"/>
+                    <button name="action_change_quantities_wizard" string="Change Quantities" type="object"
+                            invisible="state in ['ice_handled','plugged','in_transit','delivered','done','cancelled']"
+                            groups="sales_team.group_sale_salesman_all_leads"
+                            help="Change product quantities (Sales Supervisor only)"/>
+                    
+                    <button name="action_proceed_to_plugged" string="Plug Car" type="object"
+                            class="oe_highlight" invisible="state != 'ice_handled'"
+                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                    <button name="action_change_car" string="Change Car" type="object"
+                            invisible="state not in ['draft','car_checking']"
+                            groups="ice_loading_management.group_fleet_supervisor"/>
+
+                    <button name="action_open_session" string="Open Session" type="object"
+                        class="oe_highlight" invisible="state != 'in_transit'"
+                        groups="sales_team.group_sale_salesman"/>
+
+                    <button name="action_pause_loading" string="Pause Loading" type="object"
+                            class="btn-warning" invisible="state != 'plugged'"
+                            groups="ice_loading_management.group_fleet_supervisor"/>
+                    
+                    <button name="action_continue_loading" string="Continue Loading" type="object"
+                            class="oe_highlight" invisible="state != 'paused'"
+                            groups="ice_loading_management.group_fleet_supervisor"/>
+                    <button name="action_close_session"
+                        string="Close Session"
+                        type="object"
+                        invisible="state != 'delivering'"
+                        class="btn-primary"/>
+                    <button name="action_scrap_products"
+                        string="Scrap Products"
+                        type="object"
+                        invisible="state != 'empty_scrap'"
+                        class="btn-danger"/>
+                    <button name="action_start_second_loading"
+                        string="Start Second Loading"
+                        type="object"
+                        invisible="state != 'ready_for_second_loading'"
+                        class="btn-primary"
+                        />
+                    <button name="action_second_loading_worker_wizard"
+                        string="Second Loading Worker"
+                        type="object"
+                        invisible="state != 'started_second_loading'"
+                        groups="ice_loading_management.group_second_loading_worker"
+                        class="oe_highlight"
+                        help="Update the actual loaded quantities for the second loading."
+                        />
+                    <button name="action_open_second_loading_session"
+                        string="Open Second Loading Session"
+                        type="object"
+                        invisible="state != 'second_loading_done'"
+                        class="oe_highlight"
+                        help="Open a session for the second loading."
+                        />
+                    <button name="action_second_loading_done"
+                        string="Complete Second Loading"
+                        type="object"
+                        invisible="state != 'second_loading_delivering'"
+                        class="btn-primary"
+                        help="Complete the second loading process."
+                        />
+                    <buttom name="action_handle_car" 
+                            string="Handle Car"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="not is_warehouse_check"
+                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"
+                            help="Mark the car as handled after delivery."/>
+                    <button name="action_empty_warehouse" string="Empty Warehouse" type="object"
+                            class="oe_highlight" invisible="state != 'session_closed'"
+                            help="Mark the warehouse as empty after delivery."/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,car_checking,ready_for_loading,ice_handled,plugged,paused,in_transit,done"/>
+
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_maintenance_request" type="object"
+                                class="oe_stat_button" icon="fa-wrench"
+                                invisible="car_check_request_count == 0">
+                            <field name="car_check_request_count" widget="statinfo" string="Car Check"/>
+                        </button>
+                        <button name="action_view_picking" type="object"
+                                class="oe_stat_button" icon="fa-truck"
+                                invisible="picking_count == 0">
+                            <field name="picking_count" widget="statinfo" string="Transfer"/>
+                        </button>
+                        <button name="action_view_quantity_changes" type="object"
+                                class="oe_stat_button" icon="fa-history"
+                                invisible="not quantity_changes">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="quantity_changes" invisible="1"/>
+                                    <!-- <span t-esc="len(quantity_changes)"/> -->
+                                </span>
+                                <span class="o_stat_text">Quantity Changes</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group string="Loading Information">
+                            <field name="car_id" options="{'no_create': True}" 
+                                   domain="[('loading_status', '=', 'available')]"/>
+                            <field name="salesman_id"/>
+                            <field name="loading_place_id"/>
+                            <field name="dispatch_time"/>
+                            <field name="is_urgent" help="Check this to bypass the 6-hour dispatch time rule. Limited to one per car per day."/>
+
+                        </group>
+                        <group string="Team Information">
+                            <field name="route_id" readonly="1"/>
+                            <field name="team_leader_id" readonly="1"/>
+                            <field name="loading_priority" groups="sales_team.group_sale_manager"/>
+                            <field name="total_weight" readonly="1" widget="float" digits="[16,2]"/>
+                        </group>
+                    </group>
+                    <group string="Pause Information" invisible="state != 'paused'">
+                        <field name="pause_reason" readonly="1"/>
+                    </group>
+
+                    <group string="Special Instructions">
+                        <field name="special_packing" nolabel="1"/>
+                    </group>
+                    <group string="Form Management" groups="ice_loading_management.group_fleet_supervisor,ice_loading_management.group_freezer_supervisor">
+                        <group string="Loading Form" invisible="state not in ['plugged','in_transit','delivered','done','cancelled']">
+                            <field name="signed_loading_form" filename="signed_loading_form_filename"/>
+                            <field name="signed_loading_form_filename" invisible="1"/>
+                            <field name="loading_form_uploaded_by" readonly="1"/>
+                            <field name="loading_form_upload_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <!-- Car Change History -->
+                    <group string="Car Change History" invisible="not previous_car_id">
+                        <group>
+                            <field name="previous_car_id" readonly="1"/>
+                            <field name="car_changed_by" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="car_change_date" readonly="1"/>
+                            <field name="car_change_reason" readonly="1" nolabel="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Computed Status Fields (Hidden, for logic) -->
+                   
+                    <group invisible="1">
+                        <field name="is_concrete"/>
+                    </group>
+                    <notebook>
+                        <page string="Customer Lines" name="customer_lines" invisible="not is_concrete">
+                            <field name="customer_line_ids">
+                                <tree editable="bottom">
+                                    <field name="customer_id" force_save="1" />
+                                    <field name="sale_order_id" force_save="1"/>
+                                    <field name="remaining_qty" force_save="1" />
+                                    <field name="quantity"/>
+                                    <field name="delivery_id" invisible="1"/>
+                                    <button name="open_delivery_wizard" 
+                                            type="object" 
+                                            string="Set Actual Quantity" 
+                                            title="Set Actual Quantity"
+                                            class="btn-secondary"
+                                            icon="fa-truck" 
+                                            invisible="not delivery_id"
+                                            />
+                                    <button name="button_print_delivery_slip" type="object" string="Print Delivery Slip" icon="fa-print"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Ice Products" name="products" invisible="is_concrete">
+                            <field name="product_line_ids" mode="tree">
+                                <tree editable="bottom" create="0" delete="0">
+                                    <field name="product_id" readonly="1"/>
+                                    <field name="product_type" readonly="1" widget="badge"
+                                           decoration-success="product_type == '4kg'"
+                                           decoration-warning="product_type == '25kg'"
+                                           decoration-info="product_type == 'cup'"/>
+                                    <field name="quantity" widget="float" digits="[16,0]"/>
+                                    <field name="uom_id" options="{'no_create': True}"/>
+                                    <field name="is_full_load" widget="boolean_toggle"/>
+                                    <field name="max_capacity_for_product" readonly="1" widget="float" digits="[16,2]"/>
+                                    <field name="computed_weight" readonly="1" widget="float" digits="[16,2]" 
+                                           decoration-danger="computed_weight > max_capacity_for_product"/>
+                                </tree>
+                            </field>
+                            <div class="oe_clear"/>
+                        </page>
+                        <page string="Second Loading Products" name="second_loading_products" invisible="not has_second_loading">
+                            <field name="second_product_line_ids" mode="tree">
+                                <tree editable="bottom" create="0" delete="0">
+                                    <field name="product_id" readonly="1"/>
+                                    <field name="product_type" readonly="1" widget="badge"
+                                           decoration-success="product_type == '4kg'"
+                                           decoration-warning="product_type == '25kg'"
+                                           decoration-info="product_type == 'cup'"/>
+                                    <field name="quantity" widget="float" digits="[16,0]"/>
+                                    <field name="max_capacity_for_product" readonly="1" widget="float" digits="[16,2]"/>
+                                    <field name="computed_weight" readonly="1" widget="float" digits="[16,2]" 
+                                           decoration-danger="computed_weight > max_capacity_for_product"/>
+                                </tree>
+                            </field>
+                            <div class="oe_clear"/>
+                        </page>
+                        <page string="Cash Return" invisible="state != 'session_closed'">
+                            <group>
+                                <field name="salesman_cash_journal_id"/>
+                                <field name="salesman_balance"/>
+                                <field name="actual_cash_received"/>
+                                <field name="destination_journal_id"/>
+                            </group>
+                            <field name="cash_payment_id"/>
+                            <button name="action_process_cash_return" string="Process Cash Return" type="object"
+                                    class="btn-primary" 
+                                    />
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="action_loading_quantity_changes" model="ir.actions.act_window">
+        <field name="name">Quantity Change History</field>
+        <field name="res_model">ice.loading.quantity.change</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_loading_request_id': active_id}</field>
+        <field name="domain">[('loading_request_id', '=', active_id)]</field>
+    </record>
+    <!-- Loading Request Tree View -->
+    <record id="view_ice_loading_request_tree" model="ir.ui.view">
+        <field name="name">ice.loading.request.tree</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <tree string="Ice Loading Requests" 
+                  decoration-info="state in ['draft']" 
+                  decoration-warning="state in ['car_checking', 'ready_for_loading']"
+                  decoration-success="state in ['ice_handled']"
+                  decoration-primary="state == 'plugged'"
+                  decoration-muted="state in ['cancelled', 'done']"
+                  default_order="loading_priority,dispatch_time desc">
+                <field name="loading_priority" widget="badge" decoration-success="loading_priority == 1" 
+                       decoration-warning="loading_priority == 2" decoration-info="loading_priority >= 3"/>
+                <field name="name"/>
+                <field name="car_id"/>
+                <field name="salesman_id"/>
+                <field name="dispatch_time" widget="datetime"/>
+                <field name="loading_place_id"/>
+                <field name="total_weight" widget="float" digits="[16,2]" optional="show"/>
+                <field name="state" widget="badge" 
+                       decoration-info="state in ['draft', 'confirmed']" 
+                       decoration-warning="state in ['car_checking', 'ready_for_loading']"
+                       decoration-success="state in ['ice_handled']"
+                       decoration-primary="state == 'plugged'"
+                       decoration-muted="state in ['cancelled', 'done']"/>
+            </tree>
+        </field>
+    </record>
+    <!-- Loading Request Kanban View -->
+    <record id="view_ice_loading_request_kanban" model="ir.ui.view">
+        <field name="name">ice.loading.request.kanban</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <!-- MODIFIED: Logic to disable drag/drop is handled in the python model fields_view_get -->
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="car_id"/>
+                <field name="salesman_id"/>
+                <field name="dispatch_time"/>
+                <field name="loading_priority"/>
+                <field name="total_weight"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_title">
+                                    <strong><field name="name"/></strong>
+                                    <span class="badge badge-pill float-right" 
+                                          t-attf-class="badge-#{record.loading_priority.raw_value == 1 and 'success' or record.loading_priority.raw_value == 2 and 'warning' or 'info'}">
+                                        P<field name="loading_priority"/>
+                                    </span>
+                                </div>
+                                <div class="o_kanban_record_subtitle">
+                                    <i class="fa fa-car"/> <field name="car_id"/>
+                                </div>
+                                <div class="o_kanban_record_subtitle">
+                                    <i class="fa fa-user"/> <field name="salesman_id"/>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="dispatch_time" widget="date"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <span class="badge badge-secondary">
+                                            <field name="total_weight"/>kg
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <!-- Loading Request Search View -->
+    <record id="view_ice_loading_request_search" model="ir.ui.view">
+        <field name="name">ice.loading.request.search</field>
+        <field name="model">ice.loading.request</field>
+        <field name="arch" type="xml">
+            <search string="Loading Requests">
+                <field name="name" string="Reference"/>
+                <field name="car_id" string="Car"/>
+                <field name="salesman_id" string="Salesman"/>
+                <field name="loading_place_id" string="Loading Place"/>
+                <filter name="today" string="Today" 
+                        domain="[('dispatch_time', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')),
+                                ('dispatch_time', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <filter name="this_week" string="This Week" 
+                        domain="[('dispatch_time', '&gt;=', (context_today()-datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                ('dispatch_time', '&lt;=', (context_today()+datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="priority_1" string="Priority 1" domain="[('loading_priority', '=', 1)]"/>
+                <filter name="priority_2" string="Priority 2" domain="[('loading_priority', '=', 2)]"/>
+                <separator/>
+                <filter name="active_states" string="Active" 
+                        domain="[('state', 'not in', ['cancelled', 'done', 'delivered'])]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_by_car" string="Car" context="{'group_by': 'car_id'}"/>
+                    <filter name="group_by_salesman" string="Salesman" context="{'group_by': 'salesman_id'}"/>
+                    <filter name="group_by_loading_place" string="Loading Place" context="{'group_by': 'loading_place_id'}"/>
+                    <filter name="group_by_priority" string="Priority" context="{'group_by': 'loading_priority'}"/>
+                    <filter name="group_by_dispatch_date" string="Dispatch Date" context="{'group_by': 'dispatch_time:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <!-- Loading Request Action -->
+    <record id="action_ice_loading_request" model="ir.actions.act_window">
+        <field name="name">Loading Requests</field>
+        <field name="res_model">ice.loading.request</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="context">{'search_default_active_states': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first ice loading request!
+            </p>
+            <p>
+                Loading requests manage the entire process from car assignment to delivery.
+                The system will automatically create car checks, transfers, and freezer requests.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Main Menu -->
+    <menuitem id="menu_ice_loading_management" 
+              name="Ice Loading" 
+              sequence="85"
+              web_icon="ice_loading_management,static/description/icon.png"/>
+
+    <!-- Operations Menu -->
+    <menuitem id="menu_ice_loading_operations" 
+              name="Operations" 
+              parent="menu_ice_loading_management" 
+              sequence="10"/>
+
+    <menuitem id="menu_ice_loading_requests" 
+              action="action_ice_loading_request" 
+              parent="menu_ice_loading_operations" 
+              sequence="10"/>
+
+    <!-- Configuration Menu -->
+    <menuitem id="menu_ice_loading_configuration" 
+              name="Configuration" 
+              parent="menu_ice_loading_management" 
+              sequence="90"/>
+
+    <menuitem id="menu_ice_loading_places" 
+              action="action_ice_loading_place" 
+              parent="menu_ice_loading_configuration" 
+              sequence="10"/>
+
+
+
+</odoo>

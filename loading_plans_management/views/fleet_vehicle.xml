@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========================================
+         FLEET VEHICLE VIEWS
+         ======================================== -->
+    
+    <!-- Fleet Vehicle Form View Extension -->
+    <record id="view_fleet_vehicle_form_ice_loading" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.ice.loading</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='note']" position="before">
+                <page string="Ice Loading Capacity" name="ice_loading">
+                    <group>
+                        <group string="Loading Status">
+                            <field name="loading_status" widget="badge" 
+                                   decoration-success="loading_status == 'available'"
+                                   decoration-warning="loading_status in ['in_use', 'ready_for_loading']"
+                                   decoration-info="loading_status == 'plugged'"
+                                   decoration-muted="loading_status == 'not_available'"/>
+                            <field name="is_concrete"/>
+                        </group>
+                        <group string="Ice Capacity Configuration">
+                            <!-- MODIFIED: Labels changed for Bags and Baskets -->
+                            <field name="ice_4kg_capacity" string="Capacity for 4kg Ice (Bags)" widget="float" digits="[16,2]"/>
+                            <field name="ice_25kg_capacity" widget="float" digits="[16,2]"/>
+                            <field name="ice_cup_capacity" string="Capacity for Ice Cups (Baskets)" widget="float" digits="[16,2]"/>
+                            <field name="total_weight_capacity" widget="float" digits="[16,2]" 
+                                   decoration-bf="1" />
+                            <field name="location_id" invisible="not is_concrete"/>
+
+                        </group>
+                    </group>
+                    
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Fleet Vehicle Tree View Extension -->
+    <record id="view_fleet_vehicle_tree_ice_loading" model="ir.ui.view">
+        <field name="name">fleet.vehicle.tree.ice.loading</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="state_id" position="after">
+                <field name="loading_status" widget="badge" optional="show"
+                       decoration-success="loading_status == 'available'"
+                       decoration-warning="loading_status in ['in_use', 'ready_for_loading']"
+                       decoration-info="loading_status == 'plugged'"
+                       decoration-muted="loading_status == 'not_available'"/>
+                <field name="total_weight_capacity" string="Total Capacity (kg)" optional="hide"/>
+            </field>
+        </field>
+    </record>
+</odoo>
