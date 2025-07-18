@@ -6,6 +6,12 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+class StockScrap(models.Model):
+    _inherit = 'stock.scrap'
+
+    loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False, ondelete='set null')
+
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 

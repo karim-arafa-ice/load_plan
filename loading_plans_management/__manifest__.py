@@ -19,6 +19,7 @@
         'sales_team',
         'rest_api',
         'account',
+        'restrict_implementation_of_loading_plan'
     ],
     'data': [
         # Security
@@ -32,15 +33,15 @@
         'reports/loading_form_report.xml',
 
         # Wizard
-        'wizards/pause_reason_wizard.xml', 
-        'wizards/car_change_wizard.xml', 
-        'wizards/form_upload_wizard.xml', 
-        'wizards/loading_worker_wizard.xml', 
-        'wizards/quantity_change_wizard.xml', 
-        'wizards/warehouse_return_wizard.xml',
-        'wizards/delivery_wizard.xml',
-        'wizards/close_session_wizard.xml',
-        'wizards/scrap_first_loading_wizard.xml',
+        'wizard/pause_reason_wizard.xml', 
+        'wizard/car_change_wizard.xml', 
+        'wizard/loading_worker_wizard.xml', 
+        'wizard/quantity_change_wizard.xml', 
+        'wizard/warehouse_return_wizard.xml',
+        'wizard/delivery_wizard.xml',
+        'wizard/close_session_wizard.xml',
+        'wizard/scrap_first_loading_wizard.xml',
+        'wizard/second_loading_worker_wizard.xml',
 
         # Views
         'views/fleet_vehicle.xml',

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit the stock.picking form to add transfer_vehicle field -->
+    <record id="view_picking_form_inherit_ice_sales" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.ice.sales</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='picking_type_id']" position="after">
+                <field name="is_dest_salesman_location" invisible="1"/>
+            </xpath>
+            <field name="location_id" position="attribute">
+                    <attribute name="domain">[('load_plan_implemented', '=', False)]</attribute>
+            </field>
+            <field name="location_dest_id" position="attribute">
+                    <attribute name="domain">[('load_plan_implemented', '=', False)]</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -12,7 +12,7 @@
             <form string="Ice Loading Request">
                 <header>
                     <button name="action_receive_car_keys" string="Receive Car Keys" type="object"
-                            class="oe_highlight" invisible="state != 'plugged'"
+                            class="oe_highlight" invisible="state != 'ready_for_loading'"
                             help="Move the car to the loading area"/>
                     <button name="action_print_loading_form" string="Print Loading Form" type="object"
                             class="oe_highlight" invisible="state not in ['plugged']"
@@ -24,11 +24,11 @@
                             class="oe_highlight" invisible="state not in ['plugged']"
                             groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
                     <button name="action_loading_worker_wizard" string="Update Loading Quantities" type="object"
-                            class="oe_highlight" invisible="state != 'ready_for_loading'"
+                            class="oe_highlight" invisible="state != 'loading'"
                             groups="ice_loading_management.group_loading_worker"
                             help="Update the actual loaded quantities"/>
                     <button name="action_change_quantities_wizard" string="Change Quantities" type="object"
-                            invisible="state in ['ice_handled','plugged','in_transit','delivered','done','cancelled']"
+                            invisible="state in ['ice_handled','plugged','delivered','done','cancelled']"
                             groups="sales_team.group_sale_salesman_all_leads"
                             help="Change product quantities (Sales Supervisor only)"/>
                     
@@ -40,7 +40,7 @@
                             groups="ice_loading_management.group_fleet_supervisor"/>
 
                     <button name="action_open_session" string="Open Session" type="object"
-                        class="oe_highlight" invisible="state != 'in_transit'"
+                        class="oe_highlight" invisible="state != 'sign_form'"
                         groups="sales_team.group_sale_salesman"/>
 
                     <button name="action_pause_loading" string="Pause Loading" type="object"
@@ -70,7 +70,6 @@
                         string="Second Loading Worker"
                         type="object"
                         invisible="state != 'started_second_loading'"
-                        groups="ice_loading_management.group_second_loading_worker"
                         class="oe_highlight"
                         help="Update the actual loaded quantities for the second loading."
                         />
@@ -88,7 +87,8 @@
                         class="btn-primary"
                         help="Complete the second loading process."
                         />
-                    <buttom name="action_handle_car" 
+                    <field name="is_warehouse_check" invisible="1"/>
+                    <button name="action_handle_car" 
                             string="Handle Car"
                             type="object"
                             class="oe_highlight"
@@ -145,7 +145,6 @@
                         <group string="Team Information">
                             <field name="route_id" readonly="1"/>
                             <field name="team_leader_id" readonly="1"/>
-                            <field name="loading_priority" groups="sales_team.group_sale_manager"/>
                             <field name="total_weight" readonly="1" widget="float" digits="[16,2]"/>
                         </group>
                     </group>
@@ -160,7 +159,7 @@
                         <group string="Loading Form" invisible="state not in ['plugged','in_transit','delivered','done','cancelled']">
                             <field name="signed_loading_form" filename="signed_loading_form_filename"/>
                             <field name="signed_loading_form_filename" invisible="1"/>
-                            <field name="loading_form_uploaded_by" readonly="1"/>
+                            <field name="loading_form_uploaded_by_id" readonly="1"/>
                             <field name="loading_form_upload_date" readonly="1"/>
                         </group>
                     </group>
@@ -168,7 +167,7 @@
                     <group string="Car Change History" invisible="not previous_car_id">
                         <group>
                             <field name="previous_car_id" readonly="1"/>
-                            <field name="car_changed_by" readonly="1"/>
+                            <field name="car_changed_by_id" readonly="1"/>
                         </group>
                         <group>
                             <field name="car_change_date" readonly="1"/>
@@ -211,7 +210,6 @@
                                            decoration-warning="product_type == '25kg'"
                                            decoration-info="product_type == 'cup'"/>
                                     <field name="quantity" widget="float" digits="[16,0]"/>
-                                    <field name="uom_id" options="{'no_create': True}"/>
                                     <field name="is_full_load" widget="boolean_toggle"/>
                                     <field name="max_capacity_for_product" readonly="1" widget="float" digits="[16,2]"/>
                                     <field name="computed_weight" readonly="1" widget="float" digits="[16,2]" 
@@ -219,6 +217,7 @@
                                 </tree>
                             </field>
                             <div class="oe_clear"/>
+                            <field name="has_second_loading" invisible="1"/>
                         </page>
                         <page string="Second Loading Products" name="second_loading_products" invisible="not has_second_loading">
                             <field name="second_product_line_ids" mode="tree">
@@ -276,9 +275,8 @@
                   decoration-success="state in ['ice_handled']"
                   decoration-primary="state == 'plugged'"
                   decoration-muted="state in ['cancelled', 'done']"
-                  default_order="loading_priority,dispatch_time desc">
-                <field name="loading_priority" widget="badge" decoration-success="loading_priority == 1" 
-                       decoration-warning="loading_priority == 2" decoration-info="loading_priority >= 3"/>
+                  default_order="dispatch_time desc">
+                
                 <field name="name"/>
                 <field name="car_id"/>
                 <field name="salesman_id"/>
@@ -305,7 +303,6 @@
                 <field name="car_id"/>
                 <field name="salesman_id"/>
                 <field name="dispatch_time"/>
-                <field name="loading_priority"/>
                 <field name="total_weight"/>
                 <field name="state"/>
                 <templates>
@@ -314,10 +311,7 @@
                             <div class="oe_kanban_content">
                                 <div class="o_kanban_record_title">
                                     <strong><field name="name"/></strong>
-                                    <span class="badge badge-pill float-right" 
-                                          t-attf-class="badge-#{record.loading_priority.raw_value == 1 and 'success' or record.loading_priority.raw_value == 2 and 'warning' or 'info'}">
-                                        P<field name="loading_priority"/>
-                                    </span>
+                                    
                                 </div>
                                 <div class="o_kanban_record_subtitle">
                                     <i class="fa fa-car"/> <field name="car_id"/>
@@ -359,8 +353,7 @@
                         domain="[('dispatch_time', '&gt;=', (context_today()-datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
                                 ('dispatch_time', '&lt;=', (context_today()+datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
                 <separator/>
-                <filter name="priority_1" string="Priority 1" domain="[('loading_priority', '=', 1)]"/>
-                <filter name="priority_2" string="Priority 2" domain="[('loading_priority', '=', 2)]"/>
+                
                 <separator/>
                 <filter name="active_states" string="Active" 
                         domain="[('state', 'not in', ['cancelled', 'done', 'delivered'])]"/>
@@ -369,7 +362,6 @@
                     <filter name="group_by_car" string="Car" context="{'group_by': 'car_id'}"/>
                     <filter name="group_by_salesman" string="Salesman" context="{'group_by': 'salesman_id'}"/>
                     <filter name="group_by_loading_place" string="Loading Place" context="{'group_by': 'loading_place_id'}"/>
-                    <filter name="group_by_priority" string="Priority" context="{'group_by': 'loading_priority'}"/>
                     <filter name="group_by_dispatch_date" string="Dispatch Date" context="{'group_by': 'dispatch_time:day'}"/>
                 </group>
             </search>

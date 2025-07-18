@@ -89,7 +89,7 @@ class LoadingWorkerWizard(models.TransientModel):
             return {
                 'type': 'ir.actions.act_window',
                 'name': 'Confirm Differences',
-                'res_model': 'ice.loading.confirm.wizard',
+                'res_model': 'second.ice.loading.confirm.wizard',
                 'view_mode': 'form',
                 'target': 'new',
                 'context': {
@@ -249,10 +249,10 @@ class LoadingWorkerWizard(models.TransientModel):
 
 
 class LoadingConfirmWizard(models.TransientModel):
-    _name = 'ice.loading.confirm.wizard'
+    _name = 'second.ice.loading.confirm.wizard'
     _description = 'Loading Confirmation Wizard'
     
-    parent_wizard_id = fields.Many2one('ice.loading.worker.wizard', required=True)
+    parent_wizard_id = fields.Many2one('second.ice.loading.worker.wizard', required=True)
     differences = fields.Text(string='Differences Found', readonly=True)
     
     def action_proceed(self):
@@ -263,7 +263,7 @@ class LoadingConfirmWizard(models.TransientModel):
         """Go back to edit"""
         return {
             'type': 'ir.actions.act_window',
-            'res_model': 'ice.loading.worker.wizard',
+            'res_model': 'second.ice.loading.worker.wizard',
             'res_id': self.parent_wizard_id.id,
             'view_mode': 'form',
             'target': 'new',

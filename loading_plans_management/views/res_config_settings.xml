@@ -25,12 +25,11 @@
                                    domain="[('ice_product_type', '=', 'cup'), ('type', '=', 'product')]"
                                    options="{'no_create': True, 'no_edit': True}"/>
                         </setting>
-                        <setting string="Default Freezer Location" help="Default location for freezer renting operations">
-                            <field name="default_freezer_location_id" 
-                                   domain="[('usage', '=', 'internal')]"
+                        <setting string="Default Scrap Location" help="Default location for scrap operations">
+                            <field name="default_scrap_location_id" 
                                    options="{'no_create': True, 'no_edit': True}"/>
                         </setting>
-                        <setting string="Default Ice Location" help="Default location for Ice  operations">
+                        <setting string="Default Ice Location" help="Default location for Ice operations">
                             <field name="default_ice_location_id" 
                                    domain="[('usage', '=', 'internal')]"
                                    options="{'no_create': True, 'no_edit': True}"/>

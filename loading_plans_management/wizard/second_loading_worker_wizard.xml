@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Simple Loading Worker Wizard Form -->
+        <record id="view_second_loading_worker_wizard_simple_form" model="ir.ui.view">
+            <field name="name">second.ice.loading.worker.wizard.simple.form</field>
+            <field name="model">second.ice.loading.worker.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Update Loading Quantities">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>Update Loading Quantities</h1>
+                            <p>Enter the actual loaded quantities for each product</p>
+                        </div>
+                        
+                        <group>
+                            <group string="Loading Information">
+                                <field name="loading_request_id" readonly="1"/>
+                                <field name="car_name" readonly="1"/>
+                                <field name="salesman_name" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <group string="Product Quantities">
+                            <!-- Product 1 -->
+                            <group string="Product 1" invisible="not product_1_id">
+                                <field name="product_1_id" readonly="1"/>
+                                <field name="product_1_requested" readonly="1" string="Requested"/>
+                                <field name="product_1_loaded" string="Actually Loaded"/>
+                            </group>
+                            
+                            <!-- Product 2 -->
+                            <group string="Product 2" invisible="not product_2_id">
+                                <field name="product_2_id" readonly="1"/>
+                                <field name="product_2_requested" readonly="1" string="Requested"/>
+                                <field name="product_2_loaded" string="Actually Loaded"/>
+                            </group>
+                            
+                            <!-- Product 3 -->
+                            <group string="Product 3" invisible="not product_3_id">
+                                <field name="product_3_id" readonly="1"/>
+                                <field name="product_3_requested" readonly="1" string="Requested"/>
+                                <field name="product_3_loaded" string="Actually Loaded"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    
+                    <footer>
+                        <button name="action_confirm_loading" string="Confirm Loading" type="object" class="oe_highlight"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Confirmation Wizard Form -->
+        <record id="view_second_loading_confirm_wizard_form" model="ir.ui.view">
+            <field name="name">second.ice.loading.confirm.wizard.form</field>
+            <field name="model">second.ice.loading.confirm.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Confirm Differences">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>⚠️ Quantity Differences Found</h1>
+                            <p>The loaded quantities differ from what was requested. Do you want to proceed?</p>
+                        </div>
+                        
+                        <group>
+                            <field name="differences" nolabel="1" readonly="1" widget="text"/>
+                        </group>
+                    </sheet>
+                    
+                    <footer>
+                        <button name="action_proceed" string="Yes, Proceed" type="object" class="oe_highlight"/>
+                        <button name="action_cancel" string="No, Let me fix" type="object" class="btn-secondary"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Loading Worker Wizard Action -->
+        <record id="action_second_loading_worker_wizard_simple" model="ir.actions.act_window">
+            <field name="name">Update Loading Quantities</field>
+            <field name="res_model">second.ice.loading.worker.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_second_loading_worker_wizard_simple_form"/>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

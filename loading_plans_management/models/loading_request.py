@@ -44,7 +44,7 @@ class LoadingRequest(models.Model):
     session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
     car_id = fields.Many2one('fleet.vehicle', string='Car', required=True, 
                            domain="[('loading_status', '=', 'available')]")
-    salesman_id = fields.Many2one('res.users', string='Salesman', required=True)
+    salesman_id = fields.Many2one('res.users', string='Salesman', required=True,domain="[('is_loading_plan_implemented', '=', True)]")
     special_packing = fields.Char(string='Special Packing')
     route_id = fields.Many2one('crm.team', string='Route (Sales Team)', readonly=True)
     team_leader_id = fields.Many2one('res.users', string='Team Leader', readonly=True)
@@ -93,6 +93,7 @@ class LoadingRequest(models.Model):
     is_concrete = fields.Boolean(related='car_id.is_concrete', string='Is Concrete', store=True, readonly=True)
     customer_line_ids = fields.One2many('ice.loading.customer.line', 'loading_request_id', string='Customer Lines')
     return_picking_id = fields.Many2one('stock.picking', string='Return Picking', readonly=True)
+    quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
 
     @api.constrains('state', 'loading_place_id')
     def _check_loading_capacity(self):
