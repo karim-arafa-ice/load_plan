@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates>
-    <!-- Main Dashboard Template -->
     <t t-name="loading_plans_management.Dashboard" owl="1">
         <div class="o_ice_loading_dashboard">
-            <!-- Header -->
             <div class="o_ice_loading_form_header mb-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -18,7 +16,6 @@
                 </div>
             </div>
 
-            <!-- Loading State -->
             <div t-if="state.loading" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -26,7 +23,6 @@
                 <p class="mt-2">Loading dashboard data...</p>
             </div>
 
-            <!-- Error State -->
             <div t-if="state.error" class="alert alert-danger">
                 <h4>Error Loading Dashboard</h4>
                 <p t-esc="state.error"/>
@@ -35,12 +31,9 @@
                 </button>
             </div>
 
-            <!-- Main Dashboard Content -->
             <div t-if="!state.loading and !state.error">
-                <!-- Statistics Cards Row -->
                 <div class="row mb-4">
-                    <!-- Today's Requests -->
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onTodayRequestsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -51,9 +44,7 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Urgent Requests -->
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100 border-danger" t-on-click="onUrgentRequestsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -64,9 +55,7 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Ready for Loading -->
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onReadyForLoadingClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -77,14 +66,12 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- In Transit -->
-                    <div class="col-md-3 mb-3">
-                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onInTransitClick">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onDeliveringClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <div class="o_ice_loading_stat_label">In Transit</div>
-                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.inTransit"/>
+                                    <div class="o_ice_loading_stat_label">Delivering</div>
+                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.delivering"/>
                                 </div>
                                 <div class="text-info fs-1">🚚</div>
                             </div>
@@ -92,9 +79,58 @@
                     </div>
                 </div>
 
-                <!-- Fleet Status Row -->
                 <div class="row mb-4">
-                    <!-- Available Cars -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onCarCheckingClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Car Checking</div>
+                                    <div class="o_ice_loading_stat_number text-warning" t-esc="state.stats.carChecking"/>
+                                </div>
+                                <div class="text-warning fs-1">🔧</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onLoadingClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Loading</div>
+                                    <div class="o_ice_loading_stat_number o_color_loading" t-esc="state.stats.loading"/>
+                                </div>
+                                <div class="fs-1 o_color_loading">
+                                    <i class="fa fa-truck"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onReadyForSecondLoadingClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Ready for 2nd Load</div>
+                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.readyForSecondLoading"/>
+                                </div>
+                                <div class="text-info fs-1">➕</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onStartedSecondLoadingClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">2nd Loading</div>
+                                    <div class="o_ice_loading_stat_number o_color_second_loading" t-esc="state.stats.startedSecondLoading"/>
+                                </div>
+                                <div class="fs-1 o_color_second_loading">
+                                    <i class="fa fa-truck"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
                     <div class="col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onAvailableCarsClick">
                             <div class="d-flex justify-content-between align-items-start">
@@ -106,8 +142,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Busy Cars -->
                     <div class="col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onBusyCarsClick">
                             <div class="d-flex justify-content-between align-items-start">
@@ -121,9 +155,7 @@
                     </div>
                 </div>
 
-                <!-- Charts Row -->
                 <div class="row mb-4">
-                    <!-- Status Distribution -->
                     <div class="col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile h-100">
                             <h5 class="mb-3">Status Distribution</h5>
@@ -137,8 +169,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Priority Distribution -->
                     <div class="col-md-6 mb-3">
                         <div class="o_ice_loading_dashboard_tile h-100">
                             <h5 class="mb-3">Priority Distribution</h5>
@@ -154,7 +184,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Requests -->
                 <div class="row">
                     <div class="col-12">
                         <div class="o_ice_loading_dashboard_tile">
@@ -174,27 +203,13 @@
                                     </thead>
                                     <tbody>
                                         <tr t-foreach="state.recentRequests" t-as="request" t-key="request.id">
-                                            <td>
-                                                <span class="fw-bold" t-esc="request.name"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="request.car_id[1]"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="request.salesman_id[1]"/>
-                                            </td>
-                                            <td>
-                                                <span class="badge" t-att-class="request.priority_class" t-esc="request.loading_priority"/>
-                                            </td>
-                                            <td>
-                                                <WeightProgressBar current="request.total_weight" max="1000" unit="'kg'"/>
-                                            </td>
-                                            <td>
-                                                <span class="badge" t-att-class="request.state_class" t-esc="request.state"/>
-                                            </td>
-                                            <td>
-                                                <small t-esc="request.dispatch_time_formatted"/>
-                                            </td>
+                                            <td><span class="fw-bold" t-esc="request.name"/></td>
+                                            <td><span t-esc="request.car_id.name"/></td>
+                                            <td><span t-esc="request.salesman_id[1]"/></td>
+                                            <td><span class="badge" t-att-class="request.priority_class" t-esc="request.priority"/></td>
+                                            <td><WeightProgressBar current="request.total_weight" max="request.car_id.total_weight_capacity" unit="'kg'"/></td>
+                                            <td><span class="badge" t-att-class="request.state_class" t-esc="request.state"/></td>
+                                            <td><span t-esc="request.dispatch_time_formatted"/></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -206,103 +221,10 @@
         </div>
     </t>
 
-    <!-- Weight Progress Bar Template -->
     <t t-name="loading_plans_management.WeightProgressBar" owl="1">
         <div class="o_weight_progress_container">
             <div class="o_weight_progress_bar" t-att-class="progressClass" t-att-style="'width: ' + progressPercentage + '%'"/>
             <div class="o_weight_progress_text" t-esc="progressText"/>
-        </div>
-    </t>
-
-    <!-- Loading Request Card Template -->
-    <t t-name="loading_plans_management.RequestCard" owl="1">
-        <div class="o_ice_loading_kanban_card" t-att-class="'priority_' + props.request.loading_priority">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="card-title mb-0" t-esc="props.request.name"/>
-                    <span class="badge" t-att-class="'o_priority_badge_' + props.request.loading_priority" t-esc="props.request.loading_priority"/>
-                </div>
-                
-                <div class="card-text">
-                    <div class="d-flex align-items-center mb-1">
-                        <i class="fa fa-car me-2"/>
-                        <span t-esc="props.request.car_id[1]"/>
-                    </div>
-                    <div class="d-flex align-items-center mb-1">
-                        <i class="fa fa-user me-2"/>
-                        <span t-esc="props.request.salesman_id[1]"/>
-                    </div>
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fa fa-weight me-2"/>
-                        <span t-esc="props.request.total_weight + ' kg'"/>
-                    </div>
-                </div>
-                
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted" t-esc="props.request.dispatch_time_formatted"/>
-                    <span class="badge" t-att-class="'o_field_badge_' + props.request.state" t-esc="props.request.state"/>
-                </div>
-                
-                <!-- <div t-if="props.request.has_freezers" class="mt-2">
-                    <span class="badge badge-info">
-                        <i class="fa fa-snowflake-o me-1"/>
-                        Freezers
-                    </span>
-                </div> -->
-            </div>
-        </div>
-    </t>
-
-    <!-- Status Badge Template -->
-    <t t-name="loading_plans_management.StatusBadge" owl="1">
-        <span class="badge" t-att-class="'o_field_badge_' + props.status" t-esc="props.label or props.status"/>
-    </t>
-
-    <!-- Priority Badge Template -->
-    <t t-name="loading_plans_management.PriorityBadge" owl="1">
-        <span class="badge" t-att-class="'o_priority_badge_' + props.priority">
-            <span t-if="props.priority == 1">🔴</span>
-            <span t-elif="props.priority == 2">🟠</span>
-            <span t-elif="props.priority == 3">🟡</span>
-            <span t-else="">⚪</span>
-            Priority <t t-esc="props.priority"/>
-        </span>
-    </t>
-
-    <!-- Car Status Template -->
-    <t t-name="loading_plans_management.CarStatus" owl="1">
-        <div class="d-flex align-items-center">
-            <div class="badge me-2" t-att-class="'o_loading_status_' + props.status" t-esc="props.status"/>
-            <div>
-                <div class="fw-bold" t-esc="props.car.license_plate"/>
-                <small class="text-muted" t-esc="props.car.name"/>
-            </div>
-        </div>
-    </t>
-
-    <!-- Empty State Template -->
-    <t t-name="loading_plans_management.EmptyState" owl="1">
-        <div class="text-center py-5">
-            <div class="mb-3" style="font-size: 4rem; opacity: 0.5;">
-                <span t-esc="props.icon or '📋'"/>
-            </div>
-            <h4 class="text-muted" t-esc="props.title or 'No Data Available'"/>
-            <p class="text-muted" t-esc="props.message or 'There are no items to display at this time.'"/>
-            <button t-if="props.action" class="btn btn-primary" t-on-click="props.action">
-                <span t-esc="props.actionLabel or 'Create New'"/>
-            </button>
-        </div>
-    </t>
-
-    <!-- Loading Spinner Template -->
-    <t t-name="loading_plans_management.LoadingSpinner" owl="1">
-        <div class="d-flex justify-content-center align-items-center" t-att-style="'height: ' + (props.height or '200px')">
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="text-muted" t-esc="props.message or 'Loading...'"/>
-            </div>
         </div>
     </t>
 </templates>

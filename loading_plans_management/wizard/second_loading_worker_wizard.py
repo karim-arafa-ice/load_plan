@@ -100,102 +100,84 @@ class LoadingWorkerWizard(models.TransientModel):
         else:
             # No differences, complete directly
             return self._complete_loading()
-    
+        
     def _complete_loading(self):
         """Complete the actual loading process"""
         picking = self.loading_request_id.second_internal_transfer_id
         
         # Track quantity changes for chatter
         quantity_changes = []
-        
-        # Update quantities in loading request product lines AND stock moves
-        if self.product_1_id:
-            # Find the product line in loading request
-            product_line = self.loading_request_id.second_product_line_ids.filtered(
-                lambda l: l.product_id == self.product_1_id
-            )
-            if product_line:
-                old_qty = product_line.quantity
-                if old_qty != self.product_1_loaded:
-                    quantity_changes.append({
-                        'product': self.product_1_id.name,
-                        'old_qty': old_qty,
-                        'new_qty': self.product_1_loaded
-                    })
-                    # Update the loading request line
-                    product_line.write({'quantity': self.product_1_loaded})
+
+        # Helper function to convert to PCS
+        def convert_to_pcs(product, quantity):
+            if not product:
+                return 0.0
+            if product.ice_product_type == '4kg':
+                return quantity * (product.pcs_per_bag or 8)
+            elif product.ice_product_type == 'cup':
+                return quantity * (product.pcs_per_basket or 24)
+            else:
+                return quantity
             
-            # Update stock move
+        # 1. Unreserve the picking and delete existing move lines to prevent duplication
+        picking.do_unreserve()
+        picking.move_line_ids.unlink()
+        
+        # 2. Update the total demand on the parent stock.move records
+        #    and create a new stock.move.line for each to encode the final quantity.
+        if self.product_1_id:
             move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_1_id)
             if move:
-                move.write({'product_uom_qty': self.product_1_loaded, 'quantity': self.product_1_loaded})
-        
-        if self.product_2_id:
-            # Find the product line in loading request
-            product_line = self.loading_request_id.second_product_line_ids.filtered(
-                lambda l: l.product_id == self.product_2_id
-            )
-            if product_line:
-                old_qty = product_line.quantity
-                if old_qty != self.product_2_loaded:
-                    quantity_changes.append({
-                        'product': self.product_2_id.name,
-                        'old_qty': old_qty,
-                        'new_qty': self.product_2_loaded
-                    })
-                    # Update the loading request line
-                    product_line.write({'quantity': self.product_2_loaded})
-            
-            # Update stock move
-            move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_2_id)
-            if move:
-                move.write({'product_uom_qty': self.product_2_loaded, 'quantity': self.product_2_loaded})
-        
-        if self.product_3_id:
-            # Find the product line in loading request
-            product_line = self.loading_request_id.second_product_line_ids.filtered(
-                lambda l: l.product_id == self.product_3_id
-            )
-            if product_line:
-                old_qty = product_line.quantity
-                if old_qty != self.product_3_loaded:
-                    quantity_changes.append({
-                        'product': self.product_3_id.name,
-                        'old_qty': old_qty,
-                        'new_qty': self.product_3_loaded
-                    })
-                    # Update the loading request line
-                    product_line.write({'quantity': self.product_3_loaded})
-            
-            # Update stock move
-            move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_3_id)
-            if move:
-                move.write({'product_uom_qty': self.product_3_loaded, 'quantity': self.product_3_loaded})
-        
-        # Create/update move lines
-        for move in picking.move_ids_without_package:
-            if move.move_line_ids:
-                for move_line in move.move_line_ids:
-                    move_line.quantity = move.product_uom_qty
-            else:
+                qty_in_pcs = convert_to_pcs(self.product_1_id, self.product_1_loaded)
+                move.product_uom_qty = qty_in_pcs
                 self.env['stock.move.line'].create({
                     'move_id': move.id,
+                    'picking_id': picking.id,
                     'product_id': move.product_id.id,
-                    'product_uom_id': move.product_uom.id,
-                    'quantity': move.product_uom_qty,
                     'location_id': move.location_id.id,
                     'location_dest_id': move.location_dest_id.id,
-                    'picking_id': picking.id,
+                    'quantity': qty_in_pcs,
+                    'product_uom_id': move.product_uom.id,
                 })
         
-        # Validate picking
+        if self.product_2_id:
+            move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_2_id)
+            if move:
+                qty_in_pcs = convert_to_pcs(self.product_2_id, self.product_2_loaded)
+                move.product_uom_qty = qty_in_pcs
+                self.env['stock.move.line'].create({
+                    'move_id': move.id,
+                    'picking_id': picking.id,
+                    'product_id': move.product_id.id,
+                    'location_id': move.location_id.id,
+                    'location_dest_id': move.location_dest_id.id,
+                    'quantity': qty_in_pcs,
+                    'product_uom_id': move.product_uom.id,
+                })
+
+        if self.product_3_id:
+            move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_3_id)
+            if move:
+                qty_in_pcs = convert_to_pcs(self.product_3_id, self.product_3_loaded)
+                move.product_uom_qty = qty_in_pcs
+                self.env['stock.move.line'].create({
+                    'move_id': move.id,
+                    'picking_id': picking.id,
+                    'product_id': move.product_id.id,
+                    'location_id': move.location_id.id,
+                    'location_dest_id': move.location_dest_id.id,
+                    'quantity': qty_in_pcs,
+                    'product_uom_id': move.product_uom.id,
+                })
+        
+        # 3. Validate the picking - this will trigger the state change in StockPicking.button_validate()
         picking.button_validate()
         
-        # Update loading request
-        self.loading_request_id.write({'state': 'second_loading_done'})
+        # REMOVED: State update is now handled by StockPicking.button_validate()
+        # self.loading_request_id.write({'state': 'second_loading_done'})
         
         # Create detailed chatter message
-        message_parts = [f"<p><strong>Loading completed by {self.env.user.name}</strong></p>"]
+        message_parts = [f"<p><strong>Second loading completed by {self.env.user.name}</strong></p>"]
         
         # Add quantity changes to message
         if quantity_changes:
@@ -229,23 +211,148 @@ class LoadingWorkerWizard(models.TransientModel):
         # Post message to chatter
         self.loading_request_id.message_post(
             body=final_message,
-            subject='🚛 Loading Completed - Quantities Updated',
+            subject='🚛 Second Loading Completed - Quantities Updated',
             message_type='comment'
         )
-        
-        # Also update the total weight computation
-        # self.loading_request_id._compute_total_weight()
         
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Loading Completed Successfully',
-                'message': f'Transfer {picking.name} validated and quantities updated.',
+                'title': 'Second Loading Completed Successfully',
+                'message': f'Transfer {picking.name} validated and request moved to second_loading_done state.',
                 'type': 'success',
                 'sticky': False,
             }
         }
+    
+    # def _complete_loading(self):
+    #     """Complete the actual loading process"""
+    #     picking = self.loading_request_id.second_internal_transfer_id
+        
+    #     # Track quantity changes for chatter
+    #     quantity_changes = []
+
+    #     # Helper function to convert to PCS
+    #     def convert_to_pcs(product, quantity):
+    #         if not product:
+    #             return 0.0
+    #         if product.ice_product_type == '4kg':
+    #             return quantity * (product.pcs_per_bag or 8)
+    #         elif product.ice_product_type == 'cup':
+    #             return quantity * (product.pcs_per_basket or 24)
+    #         else:
+    #             return quantity
+            
+    #     # 1. Unreserve the picking and delete existing move lines to prevent duplication
+    #     picking.do_unreserve()
+    #     picking.move_line_ids.unlink()
+        
+    #     # 2. Update the total demand on the parent stock.move records
+    #     #    and create a new stock.move.line for each to encode the final quantity.
+    #     if self.product_1_id:
+    #         move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_1_id)
+    #         if move:
+    #             qty_in_pcs = convert_to_pcs(self.product_1_id, self.product_1_loaded)
+    #             move.product_uom_qty = qty_in_pcs
+    #             self.env['stock.move.line'].create({
+    #                 'move_id': move.id,
+    #                 'picking_id': picking.id,
+    #                 'product_id': move.product_id.id,
+    #                 'location_id': move.location_id.id,
+    #                 'location_dest_id': move.location_dest_id.id,
+    #                 'quantity': qty_in_pcs,
+    #                 'product_uom_id': move.product_uom.id,
+    #             })
+        
+    #     if self.product_2_id:
+    #         move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_2_id)
+    #         if move:
+    #             qty_in_pcs = convert_to_pcs(self.product_2_id, self.product_2_loaded)
+    #             move.product_uom_qty = qty_in_pcs
+    #             self.env['stock.move.line'].create({
+    #                 'move_id': move.id,
+    #                 'picking_id': picking.id,
+    #                 'product_id': move.product_id.id,
+    #                 'location_id': move.location_id.id,
+    #                 'location_dest_id': move.location_dest_id.id,
+    #                 'quantity': qty_in_pcs,
+    #                 'product_uom_id': move.product_uom.id,
+    #             })
+
+    #     if self.product_3_id:
+    #         move = picking.move_ids_without_package.filtered(lambda m: m.product_id == self.product_3_id)
+    #         if move:
+    #             qty_in_pcs = convert_to_pcs(self.product_3_id, self.product_3_loaded)
+    #             move.product_uom_qty = qty_in_pcs
+    #             self.env['stock.move.line'].create({
+    #                 'move_id': move.id,
+    #                 'picking_id': picking.id,
+    #                 'product_id': move.product_id.id,
+    #                 'location_id': move.location_id.id,
+    #                 'location_dest_id': move.location_dest_id.id,
+    #                 'quantity': qty_in_pcs,
+    #                 'product_uom_id': move.product_uom.id,
+    #             })
+        
+    #     # 3. Validate the picking.
+    #     picking.button_validate()
+        
+    #     # Update loading request
+    #     self.loading_request_id.write({'state': 'second_loading_done'})
+        
+    #     # Create detailed chatter message
+    #     message_parts = [f"<p><strong>Loading completed by {self.env.user.name}</strong></p>"]
+        
+    #     # Add quantity changes to message
+    #     if quantity_changes:
+    #         message_parts.append("<p><strong>📝 Quantity Changes:</strong></p><ul>")
+    #         for change in quantity_changes:
+    #             message_parts.append(
+    #                 f"<li><strong>{change['product']}:</strong> "
+    #                 f"Changed from <span style='color: #dc3545;'>{change['old_qty']:.0f}</span> "
+    #                 f"to <span style='color: #28a745;'>{change['new_qty']:.0f}</span></li>"
+    #             )
+    #         message_parts.append("</ul>")
+        
+    #     # Add final loaded quantities
+    #     message_parts.append("<p><strong>📦 Final Loaded Quantities:</strong></p><ul>")
+    #     if self.product_1_id:
+    #         message_parts.append(f"<li><strong>{self.product_1_id.name}:</strong> {self.product_1_loaded:.0f}</li>")
+    #     if self.product_2_id:
+    #         message_parts.append(f"<li><strong>{self.product_2_id.name}:</strong> {self.product_2_loaded:.0f}</li>")
+    #     if self.product_3_id:
+    #         message_parts.append(f"<li><strong>{self.product_3_id.name}:</strong> {self.product_3_loaded:.0f}</li>")
+    #     message_parts.append("</ul>")
+        
+    #     # Add transfer information
+    #     message_parts.append(f"<p><strong>📋 Transfer Details:</strong></p>")
+    #     message_parts.append(f"<ul><li><strong>Transfer:</strong> {picking.name}</li>")
+    #     message_parts.append(f"<li><strong>Status:</strong> Validated</li>")
+    #     message_parts.append(f"<li><strong>Loading Date:</strong> {fields.Datetime.now().strftime('%Y-%m-%d %H:%M')}</li></ul>")
+        
+    #     final_message = ''.join(message_parts)
+        
+    #     # Post message to chatter
+    #     self.loading_request_id.message_post(
+    #         body=final_message,
+    #         subject='🚛 Loading Completed - Quantities Updated',
+    #         message_type='comment'
+    #     )
+        
+    #     # Also update the total weight computation
+    #     # self.loading_request_id._compute_total_weight()
+        
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'Loading Completed Successfully',
+    #             'message': f'Transfer {picking.name} validated and quantities updated.',
+    #             'type': 'success',
+    #             'sticky': False,
+    #         }
+    #     }
 
 
 class LoadingConfirmWizard(models.TransientModel):

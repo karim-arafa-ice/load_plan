@@ -108,6 +108,88 @@ class LoadingRequest(models.Model):
     quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
     priority = fields.Integer(string='Priority', compute='_compute_priority', store=True, readonly=False, default=10, help="Priority for loading. Lower is higher.")
 
+    first_loading_scrap_count = fields.Integer(compute='_compute_request_counts')
+    loading_scrap_orders_count = fields.Integer(compute='_compute_request_counts')
+    return_car_check_request_count = fields.Integer(compute='_compute_request_counts')
+    second_internal_transfer_count = fields.Integer(compute='_compute_request_counts')
+    return_picking_count = fields.Integer(compute='_compute_request_counts')
+    quantity_changes_count = fields.Integer(compute='_compute_request_counts')
+
+   
+    
+    @api.depends(
+    'car_check_request_id',
+    'first_loading_scrap_ids',
+    'loading_scrap_orders_ids',
+    'return_car_check_request_id',
+    'second_internal_transfer_id',
+    'return_picking_id',
+    'quantity_change_ids'
+    )
+    def _compute_request_counts(self):
+        for request in self:
+            # Initialize all fields for this specific record
+            request.first_loading_scrap_count = len(request.first_loading_scrap_ids) if request.first_loading_scrap_ids else 0
+            request.loading_scrap_orders_count = len(request.loading_scrap_orders_ids) if request.loading_scrap_orders_ids else 0
+            request.quantity_changes_count = len(request.quantity_change_ids) if request.quantity_change_ids else 0
+            request.car_check_request_count = 1 if request.car_check_request_id else 0
+            request.return_car_check_request_count = 1 if request.return_car_check_request_id else 0
+            request.second_internal_transfer_count = 1 if request.second_internal_transfer_id else 0
+            request.return_picking_count = 1 if request.return_picking_id else 0
+            request.picking_count = self.env['stock.picking'].search_count(
+                [('loading_request_id', '=', request.id), ('is_second_loading', '=', False)]
+            )
+
+    def action_view_first_loading_scrap_orders(self):
+        self.ensure_one()
+        return {
+            'name': _('First Loading Scraps'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.scrap',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', self.first_loading_scrap_ids.ids)],
+        }
+
+    def action_view_loading_scrap_orders(self):
+        self.ensure_one()
+        return {
+            'name': _('Loading Scrap Orders'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.scrap',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', self.loading_scrap_orders_ids.ids)],
+        }
+    
+    def action_view_return_car_check_request(self):
+        self.ensure_one()
+        return {
+            'name': _('Return Car Check Request'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'maintenance.form',
+            'view_mode': 'form',
+            'res_id': self.return_car_check_request_id.id,
+        }
+
+    def action_view_second_internal_transfer(self):
+        self.ensure_one()
+        return {
+            'name': _('Second Internal Transfer'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.second_internal_transfer_id.id,
+        }
+    def action_view_return_picking(self):
+        self.ensure_one()
+        return {
+            'name': _('Return Picking'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.return_picking_id.id,
+        }
+
+    
 
     @api.depends('loading_place_id.priority', 'dispatch_time', 'is_urgent', 'has_second_loading')
     def _compute_priority(self):
@@ -669,10 +751,10 @@ class LoadingRequest(models.Model):
         for record in self:
             record.total_weight = sum(record.product_line_ids.mapped('computed_weight'))
     
-    def _compute_request_counts(self):
-        for request in self:
-            request.car_check_request_count = 1 if request.car_check_request_id else 0
-            request.picking_count = 1 if request.internal_transfer_id else 0
+    # def _compute_request_counts(self):
+    #     for request in self:
+    #         request.car_check_request_count = 1 if request.car_check_request_id else 0
+    #         request.picking_count = 1 if request.internal_transfer_id else 0
     
     
     def action_confirm_request(self):
@@ -766,8 +848,8 @@ class LoadingRequest(models.Model):
             source_location_id = self.loading_place_id.loading_location_id.id            
             # Total quantity is summed from customer lines
             total_quantity = sum(self.customer_line_ids.mapped('quantity'))
-            self.product_line_ids[0].quantity = total_quantity
-            self.product_line_ids[0].quantity_in_pcs = total_quantity
+            self.product_line_ids[1].quantity = total_quantity
+            self.product_line_ids[1].quantity_in_pcs = total_quantity
             if total_quantity <= 0:
                 raise UserError(_("Total quantity for concrete loading request must be greater than zero."))
         else:
@@ -925,15 +1007,21 @@ class LoadingRequest(models.Model):
         }
     def action_close_session(self):
         self.ensure_one()
-        return {
-            'name': _('Close Session'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'ice.close.session.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_loading_request_id': self.id,
-            }
+        if self.is_concrete:
+            self.write({
+                'state': 'session_closed',
+                'session_closed_date': fields.Datetime.now(),
+                })
+        else:
+            return {
+                'name': _('Close Session'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'ice.close.session.wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'default_loading_request_id': self.id,
+                }
         }
     def action_scrap_products(self):
         self.ensure_one()

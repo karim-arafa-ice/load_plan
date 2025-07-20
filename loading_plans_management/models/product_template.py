@@ -22,6 +22,6 @@ class ProductTemplate(models.Model):
     )
     pcs_per_basket = fields.Integer(
         string='Pieces per Basket', 
-        default=12, 
+        default=24, 
         help="How many individual pieces are in one basket (for ice cups)."
     )

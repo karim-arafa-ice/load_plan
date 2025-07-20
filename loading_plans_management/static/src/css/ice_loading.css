@@ -2,448 +2,61 @@
    ICE LOADING MANAGEMENT - CUSTOM STYLES
    ======================================== */
 
-/* Loading Request Status Colors */
-.o_field_badge[data-value="draft"] {
-    background-color: #6c757d !important;
-    color: white !important;
+/* Main Dashboard Layout */
+.o_ice_loading_dashboard {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
 }
 
-/* .o_field_badge[data-value="confirmed"] {
-    background-color: #17a2b8 !important;
-    color: white !important;
-} */
+/* Status & Priority Badges */
+.o_field_badge[data-value="draft"], .o_field_badge[data-value="cancelled"] { background-color: #6c757d !important; color: white !important; }
+.o_field_badge[data-value="car_checking"] { background-color: #ffc107 !important; color: #212529 !important; }
+.o_field_badge[data-value="ready_for_loading"] { background-color: #fd7e14 !important; color: white !important; }
+.o_field_badge[data-value="loading"] { background-color: #6610f2 !important; color: white !important; }
+.o_field_badge[data-value="ready_for_second_loading"] { background-color: #17a2b8 !important; color: white !important; }
+.o_field_badge[data-value="started_second_loading"] { background-color: #20c997 !important; color: white !important; }
+.o_field_badge[data-value="ice_handled"] { background-color: #e83e8c !important; color: white !important; }
+.o_field_badge[data-value="plugged"], .o_field_badge[data-value="done"] { background-color: #198754 !important; color: white !important; }
+.o_field_badge[data-value="delivering"] { background-color: #007bff !important; color: white !important; }
+.o_field_badge[data-value="second_loading_delivering"] { background-color: #0d6efd !important; color: white !important; }
+.o_field_badge[data-value="delivered"], .o_field_badge[data-value="session_closed"] { background-color: #343a40 !important; color: white !important; }
 
-.o_field_badge[data-value="car_checking"] {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-}
+.o_priority_badge_1 { background-color: #dc3545 !important; color: white !important; font-weight: bold !important; animation: pulse 2s infinite; }
+.o_priority_badge_2 { background-color: #fd7e14 !important; color: white !important; font-weight: bold !important; }
+.o_priority_badge_3 { background-color: #ffc107 !important; color: #212529 !important; }
 
-.o_field_badge[data-value="ready_for_loading"] {
-    background-color: #fd7e14 !important;
-    color: white !important;
-}
+/* Form & Dashboard Styling */
+.o_ice_loading_form_header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+.o_ice_loading_dashboard_tile { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 1rem; transition: all 0.3s ease; }
+.o_ice_loading_dashboard_tile:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); transform: translateY(-2px); }
+.o_ice_loading_stat_number { font-size: 2.5rem; font-weight: bold; color: #007bff; }
+.o_ice_loading_stat_label { font-size: 0.9rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* .o_field_badge[data-value="loaded"] {
-    background-color: #20c997 !important;
-    color: white !important;
-} */
-
-/* .o_field_badge[data-value="freezer_loaded"] {
-    background-color: #007bff !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="freezer_handled"] {
-    background-color: #6f42c1 !important;
-    color: white !important;
-} */
-
-.o_field_badge[data-value="ice_handled"] {
-    background-color: #e83e8c !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="plugged"] {
-    background-color: #28a745 !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="in_transit"] {
-    background-color: #dc3545 !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="delivered"] {
-    background-color: #343a40 !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="done"] {
-    background-color: #198754 !important;
-    color: white !important;
-}
-
-.o_field_badge[data-value="cancelled"] {
-    background-color: #6c757d !important;
-    color: white !important;
-}
-
-/* Priority Badges */
-.o_priority_badge_1 {
-    background-color: #dc3545 !important;
-    color: white !important;
-    font-weight: bold !important;
-    animation: pulse 2s infinite;
-}
-
-.o_priority_badge_2 {
-    background-color: #fd7e14 !important;
-    color: white !important;
-    font-weight: bold !important;
-}
-
-.o_priority_badge_3 {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-}
-
-.o_priority_badge_high {
-    background-color: #dc3545 !important;
-    color: white !important;
-    font-weight: bold !important;
-}
-
-/* Loading Status Badges */
-.o_loading_status_available {
-    background-color: #28a745 !important;
-    color: white !important;
-}
-
-.o_loading_status_in_use {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-}
-
-.o_loading_status_not_available {
-    background-color: #6c757d !important;
-    color: white !important;
-}
-
-.o_loading_status_ready_for_loading {
-    background-color: #17a2b8 !important;
-    color: white !important;
-}
-
-.o_loading_status_plugged {
-    background-color: #007bff !important;
-    color: white !important;
-}
-
-/* Ice Product Type Badges */
-.o_product_type_4kg {
-    background-color: #28a745 !important;
-    color: white !important;
-}
-
-.o_product_type_25kg {
-    background-color: #fd7e14 !important;
-    color: white !important;
-}
-
-.o_product_type_cup {
-    background-color: #17a2b8 !important;
-    color: white !important;
-}
-
-/* Kanban Card Styling */
-.o_ice_loading_kanban_card {
-    border-left: 4px solid #007bff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-}
-
-.o_ice_loading_kanban_card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
-}
-
-.o_ice_loading_kanban_card.priority_1 {
-    border-left-color: #dc3545;
-}
-
-.o_ice_loading_kanban_card.priority_2 {
-    border-left-color: #fd7e14;
-}
-
-.o_ice_loading_kanban_card.priority_3 {
-    border-left-color: #ffc107;
-}
-
-/* Form Styling */
-.o_ice_loading_form_header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.o_ice_loading_capacity_warning {
-    background-color: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 4px;
-    padding: 10px;
-    margin: 10px 0;
-    color: #856404;
-}
-
-.o_ice_loading_capacity_error {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 10px;
-    margin: 10px 0;
-    color: #721c24;
-}
-
-.o_ice_loading_capacity_success {
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-    border-radius: 4px;
-    padding: 10px;
-    margin: 10px 0;
-    color: #155724;
-}
-
-/* Dashboard Styling */
-.o_ice_loading_dashboard_tile {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 20px;
-    margin: 10px;
-    transition: all 0.3s ease;
-}
-
-.o_ice_loading_dashboard_tile:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
-}
-
-.o_ice_loading_stat_number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #007bff;
-}
-
-.o_ice_loading_stat_label {
-    font-size: 0.9rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+/* New Stat Colors */
+.o_color_loading { color: #6610f2 !important; }
+.o_color_second_loading { color: #20c997 !important; }
 
 /* Weight Progress Bars */
-.o_weight_progress_container {
-    position: relative;
-    background-color: #e9ecef;
-    border-radius: 4px;
-    height: 20px;
-    margin: 5px 0;
-}
+.o_weight_progress_container { position: relative; background-color: #e9ecef; border-radius: 4px; height: 24px; margin: 5px 0; min-width: 120px; }
+.o_weight_progress_bar { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.o_weight_progress_safe { background-color: #28a745; }
+.o_weight_progress_warning { background-color: #ffc107; }
+.o_weight_progress_danger { background-color: #dc3545; }
+.o_weight_progress_text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 13px; font-weight: bold; color: #FFFFFF; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
-.o_weight_progress_bar {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.o_weight_progress_safe {
-    background-color: #28a745;
-}
-
-.o_weight_progress_warning {
-    background-color: #ffc107;
-}
-
-.o_weight_progress_danger {
-    background-color: #dc3545;
-}
-
-.o_weight_progress_text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 12px;
-    font-weight: bold;
-    color: #495057;
-}
+/* Recent Requests Table Adjustments */
+.table th, .table td { vertical-align: middle; font-size: 14px !important; padding: 0.75rem; }
+.table .o_field_badge { font-size: 1em; padding: 0.4em 0.7em; }
 
 /* Loading Animation */
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Form Upload Styling */
-.o_form_upload_area {
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    background-color: #f8f9fa;
-    transition: all 0.3s ease;
-}
-
-.o_form_upload_area:hover {
-    border-color: #007bff;
-    background-color: #e7f3ff;
-}
-
-.o_form_upload_area.dragover {
-    border-color: #28a745;
-    background-color: #d4edda;
-}
-
-/* Button Styling */
-.o_ice_loading_btn_primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: white;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.o_ice_loading_btn_primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
-}
-
-.o_ice_loading_btn_success {
-    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: white;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.o_ice_loading_btn_warning {
-    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: #212529;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.o_ice_loading_btn_danger {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: white;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-    .o_ice_loading_dashboard_tile {
-        margin: 5px;
-        padding: 15px;
-    }
-    
-    .o_ice_loading_stat_number {
-        font-size: 2rem;
-    }
-    
-    .o_ice_loading_kanban_card {
-        margin-bottom: 10px;
-    }
-}
-
-/* Print Styles */
-@media print {
-    .o_ice_loading_form_header {
-        background: #f8f9fa !important;
-        color: #212529 !important;
-        border: 1px solid #dee2e6 !important;
-    }
-    
-    .o_field_badge {
-        border: 1px solid #212529 !important;
-        background: white !important;
-        color: #212529 !important;
-    }
-}
-
-/* Accessibility */
-.o_ice_loading_sr_only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-    .o_field_badge {
-        border: 2px solid currentColor;
-    }
-    
-    .o_ice_loading_kanban_card {
-        border: 2px solid #000;
-    }
-    
-    .o_ice_loading_dashboard_tile {
-        border: 2px solid #000;
-    }
-}
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .o_ice_loading_dashboard_tile {
-        background: #2d3748;
-        color: #e2e8f0;
-    }
-    
-    .o_ice_loading_capacity_warning {
-        background-color: #744210;
-        border-color: #975a16;
-        color: #fbd38d;
-    }
-    
-    .o_form_upload_area {
-        background-color: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-    }
-}
-
-/* Custom Scrollbar */
-.o_ice_loading_scrollable::-webkit-scrollbar {
-    width: 6px;
-}
-
-.o_ice_loading_scrollable::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.o_ice_loading_scrollable::-webkit-scrollbar-thumb {
-    background: #007bff;
-    border-radius: 3px;
-}
-
-.o_ice_loading_scrollable::-webkit-scrollbar-thumb:hover {
-    background: #0056b3;
-}
+body.o_dark_mode .o_ice_loading_form_header { background: #2d3748; color: #e2e8f0; }
+body.o_dark_mode .o_ice_loading_dashboard_tile { background-color: #313A46; color: #e2e8f0; border: 1px solid #4a5568; }
+body.o_dark_mode .o_ice_loading_stat_label { color: #a0aec0; }
+body.o_dark_mode .o_ice_loading_dashboard_tile .table { color: #e2e8f0; }
+body.o_dark_mode .o_ice_loading_dashboard_tile .table th, body.o_dark_mode .o_ice_loading_dashboard_tile .table td { border-color: #4a5568; }
+body.o_dark_mode .o_ice_loading_dashboard_tile .table-hover > tbody > tr:hover > * { color: #e2e8f0; background-color: rgba(255, 255, 255, 0.075); }
+body.o_dark_mode .o_weight_progress_text { color: #FFFFFF; }

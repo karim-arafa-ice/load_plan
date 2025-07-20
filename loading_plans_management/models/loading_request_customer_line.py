@@ -54,7 +54,7 @@ class LoadingCustomerLine(models.Model):
         'res.partner', string='Customer', required=True,readonly=True
     )
 
-    sale_order_id = fields.Many2one('sale.order', string='Sale Order', required=True)
+    sale_order_id = fields.Many2one('sale.order', string='Sale Order', required=True, context={'search_default_customer_ref': True})
     remaining_qty = fields.Float(string='Remaining Quantity', readonly=True)
     quantity = fields.Float(string='Quantity to Deliver')
     delivery_id = fields.Many2one('stock.picking', string='Delivery', readonly=True)

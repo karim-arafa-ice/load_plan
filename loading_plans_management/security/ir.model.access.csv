@@ -21,3 +21,4 @@ access_close_session_wizard_line_user,close.session.wizard.line.user,model_ice_c
 access_ice_scrap_products_wizard_user,ice.scrap.products.wizard.user,model_ice_scrap_products_wizard,base.group_user,1,1,1,1
 access_ice_scrap_products_wizard_line_user,ice.scrap.products.wizard.line.user,model_ice_scrap_products_line,base.group_user,1,1,1,1
 access_second_ice_loading_product_line_user,second.ice.loading.product.line.user,model_second_ice_loading_product_line,base.group_user,1,1,1,1
+access_second_ice_loading_worker_wizard_user,second.ice.loading.worker.wizard.user,model_second_ice_loading_worker_wizard,base.group_user,1,1,1,1

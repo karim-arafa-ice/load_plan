@@ -127,6 +127,31 @@
                                 <span class="o_stat_text">Quantity Changes</span>
                             </div>
                         </button>
+                        <button name="action_view_first_loading_scrap_orders" type="object"
+                            class="oe_stat_button" icon="fa-archive"
+                            invisible="first_loading_scrap_count == 0">
+                            <field name="first_loading_scrap_count" widget="statinfo" string="First Scraps"/>
+                        </button>
+                        <button name="action_view_loading_scrap_orders" type="object"
+                                class="oe_stat_button" icon="fa-trash"
+                                invisible="loading_scrap_orders_count == 0">
+                            <field name="loading_scrap_orders_count" widget="statinfo" string="Loading Scraps"/>
+                        </button>
+                        <button name="action_view_return_car_check_request" type="object"
+                                class="oe_stat_button" icon="fa-medkit"
+                            invisible="return_car_check_request_count == 0">
+                            <field name="return_car_check_request_count" widget="statinfo" string="Return Check"/>
+                        </button>
+                        <button name="action_view_second_internal_transfer" type="object"
+                                class="oe_stat_button" icon="fa-exchange"
+                                invisible="second_internal_transfer_count == 0">
+                            <field name="second_internal_transfer_count" widget="statinfo" string="2nd Transfer"/>
+                        </button>
+                        <button name="action_view_return_picking" type="object"
+                                class="oe_stat_button" icon="fa-undo"
+                                invisible="return_picking_count == 0">
+                            <field name="return_picking_count" widget="statinfo" string="Return Picking"/>
+                        </button>
                     </div>
                     
                     <div class="oe_title">

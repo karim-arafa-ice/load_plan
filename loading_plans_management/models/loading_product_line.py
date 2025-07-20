@@ -40,7 +40,7 @@ class LoadingProductLine(models.Model):
             if line.product_id.ice_product_type == '4kg':
                 line.quantity_in_pcs = line.quantity * (line.product_id.pcs_per_bag or 8)
             elif line.product_id.ice_product_type == 'cup':
-                line.quantity_in_pcs = line.quantity * (line.product_id.pcs_per_basket or 12)
+                line.quantity_in_pcs = line.quantity * (line.product_id.pcs_per_basket or 24)
             else: # Default to Pieces
                 line.quantity_in_pcs = line.quantity
     
