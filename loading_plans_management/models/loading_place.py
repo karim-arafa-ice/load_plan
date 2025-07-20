@@ -17,4 +17,7 @@ class LoadingPlace(models.Model):
     loading_location_id = fields.Many2one('stock.location', string='Loading Location', 
                                         required=True, domain="[('usage', '=', 'internal')]")
     
+    priority = fields.Integer(string='Priority', default=10, help="Lower number means higher priority.")
+
+    
    

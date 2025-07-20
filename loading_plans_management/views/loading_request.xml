@@ -16,40 +16,40 @@
                             help="Move the car to the loading area"/>
                     <button name="action_print_loading_form" string="Print Loading Form" type="object"
                             class="oe_highlight" invisible="state not in ['plugged']"
-                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                            groups="loading_plans_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
                     <button name="action_confirm_request" string="Confirm Request" type="object"
                             class="oe_highlight" invisible="state != 'draft'"
                             groups="sales_team.group_sale_salesman_all_leads"/>
                     <button name="action_upload_loading_form" string="Upload Signed Loading Form" type="object"
                             class="oe_highlight" invisible="state not in ['plugged']"
-                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                            groups="loading_plans_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
                     <button name="action_loading_worker_wizard" string="Update Loading Quantities" type="object"
                             class="oe_highlight" invisible="state != 'loading'"
-                            groups="ice_loading_management.group_loading_worker"
+                            groups="loading_plans_management.group_loading_worker"
                             help="Update the actual loaded quantities"/>
                     <button name="action_change_quantities_wizard" string="Change Quantities" type="object"
-                            invisible="state in ['ice_handled','plugged','delivered','done','cancelled']"
+                            invisible="state not in ['draft','car_checking','ready_for_loading']"
                             groups="sales_team.group_sale_salesman_all_leads"
                             help="Change product quantities (Sales Supervisor only)"/>
                     
                     <button name="action_proceed_to_plugged" string="Plug Car" type="object"
                             class="oe_highlight" invisible="state != 'ice_handled'"
-                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
+                            groups="loading_plans_management.group_fleet_supervisor,fleet.fleet_group_manager"/>
                     <button name="action_change_car" string="Change Car" type="object"
                             invisible="state not in ['draft','car_checking']"
-                            groups="ice_loading_management.group_fleet_supervisor"/>
+                            groups="loading_plans_management.group_fleet_supervisor"/>
 
-                    <button name="action_open_session" string="Open Session" type="object"
+                    <!-- <button name="action_open_session" string="Open Session" type="object"
                         class="oe_highlight" invisible="state != 'sign_form'"
-                        groups="sales_team.group_sale_salesman"/>
+                        groups="sales_team.group_sale_salesman"/> -->
 
                     <button name="action_pause_loading" string="Pause Loading" type="object"
                             class="btn-warning" invisible="state != 'plugged'"
-                            groups="ice_loading_management.group_fleet_supervisor"/>
+                            groups="loading_plans_management.group_fleet_supervisor"/>
                     
                     <button name="action_continue_loading" string="Continue Loading" type="object"
                             class="oe_highlight" invisible="state != 'paused'"
-                            groups="ice_loading_management.group_fleet_supervisor"/>
+                            groups="loading_plans_management.group_fleet_supervisor"/>
                     <button name="action_close_session"
                         string="Close Session"
                         type="object"
@@ -93,12 +93,15 @@
                             type="object"
                             class="oe_highlight"
                             invisible="not is_warehouse_check"
-                            groups="ice_loading_management.group_fleet_supervisor,fleet.fleet_group_manager"
+                            groups="loading_plans_management.group_fleet_supervisor,fleet.fleet_group_manager"
                             help="Mark the car as handled after delivery."/>
                     <button name="action_empty_warehouse" string="Empty Warehouse" type="object"
                             class="oe_highlight" invisible="state != 'session_closed'"
                             help="Mark the warehouse as empty after delivery."/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,car_checking,ready_for_loading,ice_handled,plugged,paused,in_transit,done"/>
+                    <button name="action_start_delivery" string="Start Delivery" type="object"
+                            class="btn-primary" invisible="state != 'sign_form'"
+                            help="Start the delivery process."/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,car_checking,ready_for_loading,receive_key,loading,ice_handled,plugged,paused,sign_form,delivering,delivered,second_loading_request,empty_scrap,ready_for_second_loading,started_second_loading,second_loading_done,second_loading_delivering,session_closed,done"/>
 
                 </header>
                 <sheet>
@@ -130,6 +133,13 @@
                         <h1>
                             <field name="name" readonly="1"/>
                         </h1>
+                        
+                    </div>
+                    <div class="oe_title">
+                        <label for="has_second_loading" string="Has Second Loading" class="o_form_label"/>
+                        <h2>
+                            <field name="has_second_loading" string="Has Second Loading" readonly="1" />
+                        </h2>
                     </div>
                     
                     <group>
@@ -140,7 +150,7 @@
                             <field name="loading_place_id"/>
                             <field name="dispatch_time"/>
                             <field name="is_urgent" help="Check this to bypass the 6-hour dispatch time rule. Limited to one per car per day."/>
-
+                            <field name="priority" groups="sales_team.group_sale_manager"/>
                         </group>
                         <group string="Team Information">
                             <field name="route_id" readonly="1"/>
@@ -155,7 +165,7 @@
                     <group string="Special Instructions">
                         <field name="special_packing" nolabel="1"/>
                     </group>
-                    <group string="Form Management" groups="ice_loading_management.group_fleet_supervisor,ice_loading_management.group_freezer_supervisor">
+                    <group string="Form Management" groups="loading_plans_management.group_fleet_supervisor">
                         <group string="Loading Form" invisible="state not in ['plugged','in_transit','delivered','done','cancelled']">
                             <field name="signed_loading_form" filename="signed_loading_form_filename"/>
                             <field name="signed_loading_form_filename" invisible="1"/>
@@ -184,8 +194,14 @@
                         <page string="Customer Lines" name="customer_lines" invisible="not is_concrete">
                             <field name="customer_line_ids">
                                 <tree editable="bottom">
+                                    <field name="sale_order_id" force_save="1"
+                                    domain="[('state', 'in', ['sale', 'done']), 
+                                        ('open_order', '=', True), 
+                                        ('is_concrete', '=', True), 
+                                        ('user_id', '=', parent.team_leader_id)]"
+                                    options="{'no_create': True, 'no_edit': True}"
+                                    />   
                                     <field name="customer_id" force_save="1" />
-                                    <field name="sale_order_id" force_save="1"/>
                                     <field name="remaining_qty" force_save="1" />
                                     <field name="quantity"/>
                                     <field name="delivery_id" invisible="1"/>
@@ -244,8 +260,32 @@
                             </group>
                             <field name="cash_payment_id"/>
                             <button name="action_process_cash_return" string="Process Cash Return" type="object"
-                                    class="btn-primary" 
+                                    class="btn-primary"  invisible="cash_payment_id"
                                     />
+                        </page>
+                        <page String="Request Times"  name="request_times">
+                            <group>
+                                <group>
+                                    <field name="car_checking_start_date" readonly="1"/>
+                                    <field name="car_checking_end_date" readonly="1"/>
+                                    <field name="loading_start_date" readonly="1"/>
+                                    <field name="loading_end_date" readonly="1"/>
+                                    <field name="plugged_date" readonly="1"/>
+                                    <field name="paused_date" readonly="1"/>
+
+                                    <field name="form_signed_date" readonly="1"/>
+                                    <field name="delivered_date" readonly="1"/>
+
+                                </group>
+                                <group>
+                                    <field name="second_loading_request_date" readonly="1"/>
+                                    <field name="second_loading_start_date" readonly="1"/>
+                                    <field name="second_loading_end_date" readonly="1"/>
+                                    <field name="session_closed_date" readonly="1"/>
+                                    <field name="done_date" readonly="1"/>
+                                </group>
+                            </group>
+
                         </page>
                     </notebook>
                 </sheet>
@@ -275,8 +315,9 @@
                   decoration-success="state in ['ice_handled']"
                   decoration-primary="state == 'plugged'"
                   decoration-muted="state in ['cancelled', 'done']"
-                  default_order="dispatch_time desc">
-                
+                  default_order="priority asc, dispatch_time desc">
+            
+                <field name="priority" widget="handle"/>
                 <field name="name"/>
                 <field name="car_id"/>
                 <field name="salesman_id"/>
@@ -388,7 +429,7 @@
     <menuitem id="menu_ice_loading_management" 
               name="Ice Loading" 
               sequence="85"
-              web_icon="ice_loading_management,static/description/icon.png"/>
+              web_icon="loading_plans_management,static/description/icon.png"/>
 
     <!-- Operations Menu -->
     <menuitem id="menu_ice_loading_operations" 

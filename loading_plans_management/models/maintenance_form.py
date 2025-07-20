@@ -10,7 +10,6 @@ class MaintenanceForm(models.Model):
     _inherit = "maintenance.form"
     
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False, ondelete='set null')
-    return_request_id = fields.Many2one('ice.return.request', string='Return Request', readonly=True, copy=False, ondelete='set null')
 
 
     def action_stop(self):
@@ -20,6 +19,8 @@ class MaintenanceForm(models.Model):
             if self.loading_request_id.state == 'car_checking':
                 self.loading_request_id.write({'state': 'ready_for_loading'})
                 self.loading_request_id.car_id.loading_status = 'ready_for_loading'
+                self.loading_request_id.car_checking_end_date = fields.Datetime.now()
+                self.loading_request_id.message_post(body=_("Maintenance form completed. Loading request is now ready for loading."))
             else:
                 self.vehicle_id.loading_status = 'available'
 

@@ -8,6 +8,7 @@ class LoadingCustomerLine(models.Model):
     _description = 'Loading Request Customer Line'
 
     def _get_order_domain(self):
+        _logger.info("Computing domain for sale orders based on loading request's team leader.")
         """
         This method computes the domain for customers with open sale orders
         that belong to the salesman from the loading request.
@@ -15,20 +16,23 @@ class LoadingCustomerLine(models.Model):
         """
         domain = []
         team_leader_id = False
-
+        _logger.info("Attempting to find team leader for loading request: %s", self.loading_request_id.name if self.loading_request_id else 'None')
         # First, try to get the salesman from the parent loading_request_id on the line itself.
         # This works for existing lines.
         if self.loading_request_id and self.loading_request_id.team_leader_id:
+            _logger.info("Using team leader from existing loading request: %s", self.loading_request_id.team_leader_id.name)
             team_leader_id = self.loading_request_id.team_leader_id.id
 
         # If it's a new line, the loading_request_id might be in the context.
         # This is the standard Odoo way for one2many fields.
         elif self.env.context.get('default_loading_request_id'):
+            _logger.info("Using team leader from context's default_loading_request_id.")
             loading_request = self.env['ice.loading.request'].browse(self.env.context.get('default_loading_request_id'))
             if loading_request.exists() and loading_request.team_leader_id:
                 team_leader_id = loading_request.team_leader_id.id
 
         if team_leader_id:
+            _logger.info("Found team leader ID: %s", team_leader_id)
             # If we found a salesman, find their open orders
             open_orders = self.env['sale.order'].search([
                 ('state', 'in', ['sale', 'done']),
@@ -38,6 +42,7 @@ class LoadingCustomerLine(models.Model):
             ])
             domain.append(('id', 'in', open_orders.ids))
         else:
+            _logger.warning("No team leader found for loading request. Returning empty domain.")
             # If no salesman can be determined, return no customers to prevent showing an incorrect list.
             domain.append(('id', 'in', []))
 
@@ -49,7 +54,7 @@ class LoadingCustomerLine(models.Model):
         'res.partner', string='Customer', required=True,readonly=True
     )
 
-    sale_order_id = fields.Many2one('sale.order', string='Sale Order',domain=lambda self: self._get_order_domain(), required=True)
+    sale_order_id = fields.Many2one('sale.order', string='Sale Order', required=True)
     remaining_qty = fields.Float(string='Remaining Quantity', readonly=True)
     quantity = fields.Float(string='Quantity to Deliver')
     delivery_id = fields.Many2one('stock.picking', string='Delivery', readonly=True)
@@ -70,7 +75,14 @@ class LoadingCustomerLine(models.Model):
 
     @api.onchange('sale_order_id')
     def _onchange_sale_order_id(self):
+        """Update customer and remaining quantity when sale order changes."""
+        _logger.info("Sale order changed for customer line %s. Updating customer and remaining quantity.", self.id)
+        if not self.sale_order_id:
+            _logger.info("Sale order is empty. Cannot update customer or remaining quantity.")
+            
         if self.sale_order_id:
+            _logger.info("Updating customer to %s and calculating remaining quantity for sale order %s.", 
+                         self.sale_order_id.partner_id.name, self.sale_order_id.name)
             # self.sale_order_id = last_open_order.id
             remaining_qty = sum(
                 line.product_uom_qty - line.qty_delivered

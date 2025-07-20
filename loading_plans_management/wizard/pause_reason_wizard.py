@@ -12,6 +12,7 @@ class PauseReasonWizard(models.TransientModel):
         self.loading_request_id.write({
             'state': 'paused',
             'pause_reason': self.pause_reason,
+            'paused_date': fields.Datetime.now(),
         })
         self.loading_request_id.message_post(
             body=_('Loading paused by %s.<br/>Reason: %s') % (self.env.user.name, self.pause_reason),

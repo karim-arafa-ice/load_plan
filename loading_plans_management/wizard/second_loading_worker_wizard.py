@@ -61,7 +61,7 @@ class LoadingWorkerWizard(models.TransientModel):
         self.ensure_one()
         
         # Check permissions
-        if not self.env.user.has_group('ice_loading_management.group_loading_worker'):
+        if not self.env.user.has_group('loading_plans_management.group_loading_worker'):
             raise UserError(_('Only Loading Workers can complete loading operations.'))
         
         # Get the stock picking

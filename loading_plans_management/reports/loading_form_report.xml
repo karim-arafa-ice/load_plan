@@ -6,8 +6,8 @@
             <field name="name">Loading Form</field>
             <field name="model">ice.loading.request</field>
             <field name="report_type">qweb-pdf</field>
-            <field name="report_name">ice_loading_management.report_loading_form</field>
-            <field name="report_file">ice_loading_management.report_loading_form</field>
+            <field name="report_name">loading_plans_management.report_loading_form</field>
+            <field name="report_file">loading_plans_management.report_loading_form</field>
             <field name="binding_model_id" ref="model_ice_loading_request"/>
             <field name="binding_type">report</field>
         </record>

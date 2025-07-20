@@ -8,12 +8,7 @@ class SaleOrder(models.Model):
     car_id = fields.Many2one('fleet.vehicle', string='Car', readonly=True, copy=False)
     is_concrete = fields.Boolean(string="Concrete Order")
 
-    open_order = fields.Boolean(
-        string='Open Order',
-        compute='_compute_open_order',
-        store=True,
-        help='True if any order line has remaining quantity to be delivered'
-    )
+    
     # ... (rest of the fields)
 
     def write(self,vals):

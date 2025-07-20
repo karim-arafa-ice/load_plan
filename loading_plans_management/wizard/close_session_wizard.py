@@ -28,7 +28,7 @@ class CloseSessionWizard(models.TransientModel):
         request = self.loading_request_id
         if self.need_second_load == 'yes':
             for line in self.product_line_ids:
-                if line.quantity <= 0:
+                if line.quantity < 0:
                     raise UserError(_("Please enter a valid quantity for the product: %s") % line.product_id.name)
                 # Create second loading product lines
                 self.env['second.ice.loading.product.line'].create({
@@ -75,9 +75,16 @@ class CloseSessionWizard(models.TransientModel):
             # picking.action_confirm()
             # picking.action_assign()
             # request.second_internal_transfer_id = picking.id
-            request.write({'state': 'empty_scrap', 'has_second_loading': True})
+            request.write({'state': 'empty_scrap',
+                            'has_second_loading': True,
+                            'delivered_date': fields.Datetime.now(),
+                            'second_loading_request_date': fields.Datetime.now()
+                            })
         else:
-            request.write({'state': 'session_closed'})
+            request.write({
+                'state': 'session_closed',
+                'session_closed_date': fields.Datetime.now(),
+                })
         return {'type': 'ir.actions.act_window_close'}
 
 class CloseSessionProductLine(models.TransientModel):

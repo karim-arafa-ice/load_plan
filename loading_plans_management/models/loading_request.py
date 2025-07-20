@@ -10,14 +10,14 @@ class LoadingRequest(models.Model):
     _name = 'ice.loading.request'
     _description = 'Ice Loading Request'
     _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'dispatch_time desc'
+    _order = 'priority asc, dispatch_time asc, create_date asc'
 
     name = fields.Char(string='Reference', required=True, copy=False, readonly=True, default='New')
     state = fields.Selection([
         ('draft', 'Draft'),
         ('car_checking', 'Car Checking'),
         ('ready_for_loading', 'Ready for Loading'),
-        ('receive_key', 'Receive Car Key'),  
+        ('receive_key', 'Car Key Received'),  
         ('loading', 'Loading'),   
         ('ice_handled', 'Ice Loaded'),     
         ('plugged', 'Plugged / Ready for Dispatch'),
@@ -32,13 +32,25 @@ class LoadingRequest(models.Model):
         ('second_loading_done', 'Second Loading Done'),
         ('second_loading_delivering', 'Second Loading Delivering'),
         ('session_closed', 'Session Closed'),
-        ('car_empty', 'Car Empty'),
         ('done', 'Done'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
-    is_warehouse_check = fields.Boolean(string='Warehouse Check', default=False, help="Indicates if the warehouse check is required before confirming the return.")
+    car_checking_start_date = fields.Datetime(string='Car Checking Start Date', readonly=True, copy=False)
+    car_checking_end_date = fields.Datetime(string='Car Checking End Date', readonly=True, copy=False)
+    loading_start_date = fields.Datetime(string='Loading Start Date', readonly=True, copy=False)
+    loading_end_date = fields.Datetime(string='Loading End Date', readonly=True, copy=False)
+    plugged_date = fields.Datetime(string='Plugged Date', readonly=True, copy=False)
+    paused_date = fields.Datetime(string='Paused Date', readonly=True, copy=False)
+    form_signed_date = fields.Datetime(string='Form Signed Date', readonly=True, copy=False)
+    delivered_date = fields.Datetime(string='Delivered Date', readonly=True, copy=False)
+    second_loading_request_date = fields.Datetime(string='Second Loading Request Date', readonly=True, copy=False)
+    second_loading_start_date = fields.Datetime(string='Second Loading Start Date', readonly=True, copy=False)
+    second_loading_end_date = fields.Datetime(string='Second Loading End Date', readonly=True, copy=False)
+    session_closed_date = fields.Datetime(string='Session Closed Date', readonly=True, copy=False)
+    done_date = fields.Datetime(string='Done Date', readonly=True, copy=False)
+    is_warehouse_check = fields.Boolean(string='Warehouse Check and Empty Car', default=False, help="Indicates if the warehouse check is required before confirming the return.")
     is_payment_processed = fields.Boolean(string='Payment Processed', default=False, help="Indicates if the payment has been processed for this return request.")
-    is_car_received = fields.Boolean(string='Car Received', default=False, help="Indicates if the car has been received back after the return.")
+    is_car_received = fields.Boolean(string='Car Received From Fleet', default=False, help="Indicates if the car has been received back after the return.")
     has_second_loading = fields.Boolean(string='Has Second Loading', default=False, help="Indicates if this request has a second loading.")
 
     session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
@@ -94,7 +106,22 @@ class LoadingRequest(models.Model):
     customer_line_ids = fields.One2many('ice.loading.customer.line', 'loading_request_id', string='Customer Lines')
     return_picking_id = fields.Many2one('stock.picking', string='Return Picking', readonly=True)
     quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
+    priority = fields.Integer(string='Priority', compute='_compute_priority', store=True, readonly=False, default=10, help="Priority for loading. Lower is higher.")
 
+
+    @api.depends('loading_place_id.priority', 'dispatch_time', 'is_urgent', 'has_second_loading')
+    def _compute_priority(self):
+        for request in self:
+            priority = request.loading_place_id.priority or 10
+            
+            # Urgent requests get the highest priority
+            if request.is_urgent:
+                priority = 1
+            # Second loading requests are next
+            elif request.has_second_loading:
+                priority = 2
+            
+            request.priority = priority
     @api.constrains('state', 'loading_place_id')
     def _check_loading_capacity(self):
         """Constraint to ensure only 2 requests can be in 'loading' state per place."""
@@ -152,35 +179,94 @@ class LoadingRequest(models.Model):
                 if self.search_count(domain) > 0:
                     raise ValidationError(_("A car can only have one urgent loading request per day."))
     
-    @api.constrains('salesman_id', 'dispatch_time')
+    @api.constrains('salesman_id', 'dispatch_time', 'has_second_loading')
     def _check_salesman_daily_loadings(self):
         for request in self:
-            domain = [
+            # Base domain for same salesman on same day (excluding current record)
+            base_domain = [
                 ('salesman_id', '=', request.salesman_id.id),
                 ('dispatch_time', '>=', fields.Date.start_of(request.dispatch_time, 'day')),
                 ('dispatch_time', '<=', fields.Date.end_of(request.dispatch_time, 'day')),
                 ('id', '!=', request.id),
-                ('state', 'not in', ['cancelled','draft']),
-                ('is_concrete','=',False)
+                ('state', 'not in', ['cancelled', 'draft']),
+                ('is_concrete', '=', False),
             ]
-            if self.search_count(domain) >= 1:
-                raise ValidationError(_("A salesman can only have a maximum of two loading requests per day."))
             
+            # Check existing requests with second loading
+            existing_with_second_loading = self.search_count(base_domain + [('has_second_loading', '=', True)])
+            
+            # Check existing requests without second loading
+            existing_without_second_loading = self.search_count(base_domain + [('has_second_loading', '=', False)])
+            
+            if request.has_second_loading:
+                # If current request has second loading
+                if existing_with_second_loading > 0:
+                    raise ValidationError(_(
+                        "A salesman can only have one loading request with second loading per day. "
+                        "There is already a request with second loading for %s on %s."
+                    ) % (request.salesman_id.name, request.dispatch_time.strftime('%Y-%m-%d')))
+                
+                if existing_without_second_loading > 0:
+                    raise ValidationError(_(
+                        "A salesman cannot have a request with second loading when there are already "
+                        "requests without second loading on the same day. "
+                        "There are %d existing request(s) without second loading for %s on %s."
+                    ) % (existing_without_second_loading, request.salesman_id.name, request.dispatch_time.strftime('%Y-%m-%d')))
+            
+            else:
+                # If current request does NOT have second loading
+                if existing_with_second_loading > 0:
+                    raise ValidationError(_(
+                        "A salesman cannot have a request without second loading when there is already "
+                        "a request with second loading on the same day. "
+                        "There is already a request with second loading for %s on %s."
+                    ) % (request.salesman_id.name, request.dispatch_time.strftime('%Y-%m-%d')))
+                
+                if existing_without_second_loading >= 2:
+                    raise ValidationError(_(
+                        "A salesman can only have a maximum of two loading requests without second loading per day. "
+                        "There are already %d request(s) without second loading for %s on %s."
+                    ) % (existing_without_second_loading, request.salesman_id.name, request.dispatch_time.strftime('%Y-%m-%d')))
+                
     @api.constrains('salesman_id', 'state')
     def _check_salesman_open_sessions(self):
         for request in self:
             if request.state == 'delivering' and not request.is_concrete:
+                # Get today's date range
                 today_start = fields.Datetime.now().replace(hour=0, minute=0, second=0)
                 today_end = fields.Datetime.now().replace(hour=23, minute=59, second=59)
-                open_sessions = self.env['ice.driver.session'].search_count([
+                
+                # Count existing open sessions for this salesman today (excluding current request's session)
+                domain = [
                     ('driver_id', '=', request.salesman_id.id),
                     ('session_start', '>=', today_start),
                     ('session_start', '<=', today_end),
-                    ('id', '!=', request.session_id.id if request.session_id else False),
                     ('is_active', '=', True)
-                ])
-                if open_sessions >= 1:
-                    raise ValidationError(_("A salesman can only have a maximum of two open sessions per day."))
+                ]
+                
+                # Exclude current request's session if it exists
+                if request.session_id:
+                    domain.append(('id', '!=', request.session_id.id))
+                
+                open_sessions_count = self.env['ice.driver.session'].search_count(domain)
+                
+                # Check if adding this session would exceed the limit
+                # If this request doesn't have a session yet, it will create one, so we count it
+                total_sessions_after = open_sessions_count + (1 if not request.session_id else 0)
+                
+                if total_sessions_after > 2:
+                    raise ValidationError(_(
+                        "A salesman can only have a maximum of two open sessions per day. "
+                        "Salesman %s already has %d open session(s) today. "
+                        "Cannot start delivery for this loading request."
+                    ) % (request.salesman_id.name, open_sessions_count))
+                
+                # Additional check: if salesman already has 2 sessions and this request doesn't have a session
+                if open_sessions_count >= 2 and not request.session_id:
+                    raise ValidationError(_(
+                        "Cannot start delivery. Salesman %s already has the maximum of 2 open sessions today. "
+                        "Please close an existing session before starting a new delivery."
+                    ) % request.salesman_id.name)
                 
     
 
@@ -202,7 +288,7 @@ class LoadingRequest(models.Model):
         product_tmpls = []
         if concrete:
             product_tmpls = [
-                self.env.company.product_concrete_25kg_id,
+                self.env.company.product_25kg_id,
             ]
         else:
             product_tmpls = [
@@ -219,22 +305,22 @@ class LoadingRequest(models.Model):
                 }))
         return lines_values
     
-    def action_open_session(self):
-        self.ensure_one()
-        if self.state != 'sign_form':
-            raise UserError(_("You can only open a session when the request is in 'Sign Form' state."))
+    # def action_open_session(self):
+    #     self.ensure_one()
+    #     if self.state != 'sign_form':
+    #         raise UserError(_("You can only open a session when the request is in 'Sign Form' state."))
 
-        # Create a new driver session
-        session = self.env['ice.driver.session'].create({
-            'driver_id': self.salesman_id.id,
-            'car_id': self.car_id.id,
-            'loading_request_id': self.id,
-        })
+    #     # Create a new driver session
+    #     session = self.env['ice.driver.session'].create({
+    #         'driver_id': self.salesman_id.id,
+    #         'car_id': self.car_id.id,
+    #         'loading_request_id': self.id,
+    #     })
 
-        self.write({
-            'state': 'delivering',
-            'session_id': session.id
-        })
+    #     self.write({
+    #         'state': 'delivering',
+    #         'session_id': session.id
+    #     })
     def action_open_second_loading_session(self):
         self.ensure_one()
         if self.state != 'second_loading_done':
@@ -375,7 +461,7 @@ class LoadingRequest(models.Model):
             # Track form uploads
             if 'signed_loading_form' in vals and vals['signed_loading_form']:
                 vals.update({
-                    'loading_form_uploaded_by': self.env.user.id,
+                    'loading_form_uploaded_by_id': self.env.user.id,
                     'loading_form_upload_date': fields.Datetime.now(),
                 })
             
@@ -428,7 +514,10 @@ class LoadingRequest(models.Model):
             raise UserError(_('Please upload the signed loading form first.'))
         
         # Update status to sign_form
-        self.write({'state': 'sign_form'})
+        self.write({
+            'state': 'sign_form',
+            'form_signed_date': fields.Datetime.now(),
+            })
         
         # Log the action
         self.message_post(
@@ -541,7 +630,7 @@ class LoadingRequest(models.Model):
         self.ensure_one()
         
         # Check if user has fleet supervisor permissions
-        if not (self.env.user.has_group('ice_loading_management.group_fleet_supervisor')):
+        if not (self.env.user.has_group('loading_plans_management.group_fleet_supervisor')):
             raise UserError(_('Only Fleet Supervisors can proceed to plugged state.'))
         
         # Check current state
@@ -549,7 +638,11 @@ class LoadingRequest(models.Model):
             raise UserError(_('Loading request must be in "Ice Handled" state to proceed to plugged.'))
         
         # Update status and car status
-        self.write({'state': 'plugged'})
+        self.write({
+            'state': 'plugged',
+            'plugged_date': fields.Datetime.now(),
+            
+            })
         self.car_id.write({'loading_status': 'plugged'})
         
         # Log the action
@@ -650,6 +743,7 @@ class LoadingRequest(models.Model):
             'loading_request_id': self.id,
         })
         self.state = 'car_checking'
+        self.car_checking_start_date = fields.Datetime.now()
         self.car_check_request_id = maintenance_request.id
         self.car_id.loading_status = 'in_use'
         self.message_post(
@@ -728,9 +822,24 @@ class LoadingRequest(models.Model):
         if not self.signed_loading_form:
             raise UserError(_("You must upload the signed loading form from the salesman before start."))
         
-        self.write({'state': 'delivering'})
         # Change car driver
         self.car_id.write({'driver_id': self.salesman_id.partner_id.id})
+        
+
+        # Create a new driver session
+        session = self.env['ice.driver.session'].create({
+            'driver_id': self.salesman_id.id,
+            'car_id': self.car_id.id,
+            'loading_request_id': self.id,
+        })
+
+        self.write({
+            'state': 'delivering',
+            'session_id': session.id
+        })
+
+
+
 
     def action_view_maintenance_request(self):
         self.ensure_one()
@@ -744,6 +853,12 @@ class LoadingRequest(models.Model):
             raise UserError(_("No internal transfer found for this loading request."))
         return self._get_action_view(self.internal_transfer_id, 'stock.action_picking_tree_all')
     
+    def action_view_first_loading_scrap_orders(self):
+        self.ensure_one()
+        if not self.first_loading_scrap_ids:
+            raise UserError(_("No internal transfer found for this loading request."))
+        return self._get_action_view(self.internal_transfer_id, 'stock.action_picking_tree_all')
+    
     def action_receive_car_keys(self):
         """NEW: Action to move the request to 'Loading' state."""
         self.ensure_one()
@@ -751,7 +866,10 @@ class LoadingRequest(models.Model):
             raise UserError(_("Car keys can only be received when the request is in 'Ready for Loading' state."))
 
         # The constraint '_check_loading_capacity' will be triggered automatically on write.
-        self.write({'state': 'loading'})
+        self.write({
+            'state': 'loading',
+            'loading_start_date': fields.Datetime.now(),
+            })
         self.message_post(body=_("Car keys received. The car is now in the loading area."))
 
     def _notify_car_ready_for_dispatch(self):
@@ -832,14 +950,18 @@ class LoadingRequest(models.Model):
     def action_start_second_loading(self):
         self.ensure_one()
         # Update state to started_second_loading
-        self.write({'state': 'started_second_loading'})
+        self.write({'state': 'started_second_loading',
+                    'second_loading_start_date': fields.Datetime.now()
+                    })
         self.message_post(body=_("Second loading started for the car."))
 
     def action_second_loading_done(self):
         self.ensure_one()
         # Update state to session_closed
-        self.write({'state': 'session_closed'})
-        self.message_post(body=_("Second loading completed for the car."))
+        self.write({'state': 'session_closed',
+                    'second_loading_end_date': fields.Datetime.now()
+                    })
+        self.message_post(body=_("Second loading Loaded for the car."))
 
     @api.depends('salesman_id')
     def _compute_salesman_cash_journal(self):
@@ -857,6 +979,7 @@ class LoadingRequest(models.Model):
         })
         if self.is_concrete:
             self.state = 'done'
+            self.done_date = fields.Datetime.now()
         self._create_car_daily_maintenance_requests()
         
     def _create_car_daily_maintenance_requests(self):
@@ -864,7 +987,7 @@ class LoadingRequest(models.Model):
         return_car_check_request_id = self.env['maintenance.form'].create({
             'vehicle_id': car.id,
             'is_daily_check': True, # Or a new type for 'post-return check'
-            'city': self.loading_request_ids[0].loading_place_id.name if self.loading_request_ids else '',
+            'city': self.loading_place_id.name if self.loading_place_id else '',
             'loading_request_id': self.id,
         })
         self.return_car_check_request_id = return_car_check_request_id.id
@@ -896,6 +1019,8 @@ class LoadingRequest(models.Model):
         })
         if self.is_car_received and self.is_payment_processed and self.is_warehouse_check:
             self.state = 'done'
+            self.done_date = fields.Datetime.now()
+
 
     def action_empty_warehouse(self):
         self.ensure_one()

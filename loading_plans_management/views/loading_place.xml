@@ -20,6 +20,7 @@
                     <group>
                         <group>
                             <field name="loading_location_id" options="{'no_create': True}"/>
+                            <field name="priority" placeholder="Priority" help="Lower number means higher priority."/>
                         </group>
                     </group>
                     <div class="o_setting_box">

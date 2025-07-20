@@ -392,10 +392,10 @@ export class IceLoadingDashboard extends Component {
 }
 
 // Template for the dashboard component
-IceLoadingDashboard.template = "ice_loading_management.Dashboard";
+IceLoadingDashboard.template = "loading_plans_management.Dashboard";
 
 // Register the dashboard component
-registry.category("actions").add("ice_loading_management.dashboard", IceLoadingDashboard);
+registry.category("actions").add("loading_plans_management.dashboard", IceLoadingDashboard);
 
 /**
  * Weight Progress Bar Component
@@ -420,7 +420,7 @@ export class WeightProgressBar extends Component {
     }
 }
 
-WeightProgressBar.template = "ice_loading_management.WeightProgressBar";
+WeightProgressBar.template = "loading_plans_management.WeightProgressBar";
 WeightProgressBar.props = {
     current: Number,
     max: Number,

@@ -49,16 +49,19 @@
         'views/account_journal.xml',
         'views/product_template.xml',
         'views/loading_request.xml',
-        'views/dashboard_analytic.xml',
+        # 'views/dashboard_analytic.xml',
+        'views/res_config_settings.xml',
+        'views/sale_order.xml',
+        'views/stock_picking.xml',
               
     ],
-    'assets': {
-    'web.assets_backend': [
-        'loading_plans_management/static/src/css/ice_loading.css',
-        'loading_plans_management/static/src/js/ice_loading_dashboard.js',
-        'loading_plans_management/static/src/xml/dashboard_templates.xml',
-    ],
-    },
+    # 'assets': {
+    # 'web.assets_backend': [
+    #     'loading_plans_management/static/src/css/ice_loading.css',
+    #     'loading_plans_management/static/src/js/ice_loading_dashboard.js',
+    #     'loading_plans_management/static/src/xml/dashboard_templates.xml',
+    # ],
+    # },
 
     'demo': [],
     'installable': True,

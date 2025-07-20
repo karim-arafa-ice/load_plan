@@ -8,11 +8,15 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='picking_type_id']" position="after">
                 <field name="is_dest_salesman_location" invisible="1"/>
+                <field name="loading_request_id" invisible="1"/>
+                <field name="loading_driver_id" invisible="1"/>
+                <field name="car_id" />
+                <field name="is_second_loading"/>
             </xpath>
-            <field name="location_id" position="attribute">
+            <field name="location_id" position="attributes">
                     <attribute name="domain">[('load_plan_implemented', '=', False)]</attribute>
             </field>
-            <field name="location_dest_id" position="attribute">
+            <field name="location_dest_id" position="attributes">
                     <attribute name="domain">[('load_plan_implemented', '=', False)]</attribute>
             </field>
         </field>

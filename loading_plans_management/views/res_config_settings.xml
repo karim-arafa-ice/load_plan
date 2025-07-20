@@ -8,7 +8,7 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <form position="inside">
-                <app string="Ice Loading Management" name="ice_loading_management">
+                <app string="Ice Loading Management" name="loading_plans_management">
                     <block title="Default Products" help="Configure default products for ice loading operations">
                         <setting string="Default 4kg Ice Product" help="Select the default product for 4kg ice blocks">
                             <field name="default_product_4kg_id" 

@@ -11,14 +11,6 @@
             <field name="number_increment">1</field>
             <field name="company_id" eval="False"/>
         </record>
-        <!-- <record id="seq_ice_return_request" model="ir.sequence">
-            <field name="name">Ice Return Request</field>
-            <field name="code">ice.return.request</field>
-            <field name="prefix">RR</field>
-            <field name="padding">5</field>
-            <field name="number_next">1</field>
-            <field name="number_increment">1</field>
-            <field name="company_id" eval="False"/>
-        </record> -->
+        
     </data>
 </odoo>

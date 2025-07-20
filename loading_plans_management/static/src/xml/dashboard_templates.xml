@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates>
     <!-- Main Dashboard Template -->
-    <t t-name="ice_loading_management.Dashboard" owl="1">
+    <t t-name="loading_plans_management.Dashboard" owl="1">
         <div class="o_ice_loading_dashboard">
             <!-- Header -->
             <div class="o_ice_loading_form_header mb-4">
@@ -207,7 +207,7 @@
     </t>
 
     <!-- Weight Progress Bar Template -->
-    <t t-name="ice_loading_management.WeightProgressBar" owl="1">
+    <t t-name="loading_plans_management.WeightProgressBar" owl="1">
         <div class="o_weight_progress_container">
             <div class="o_weight_progress_bar" t-att-class="progressClass" t-att-style="'width: ' + progressPercentage + '%'"/>
             <div class="o_weight_progress_text" t-esc="progressText"/>
@@ -215,7 +215,7 @@
     </t>
 
     <!-- Loading Request Card Template -->
-    <t t-name="ice_loading_management.RequestCard" owl="1">
+    <t t-name="loading_plans_management.RequestCard" owl="1">
         <div class="o_ice_loading_kanban_card" t-att-class="'priority_' + props.request.loading_priority">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -254,12 +254,12 @@
     </t>
 
     <!-- Status Badge Template -->
-    <t t-name="ice_loading_management.StatusBadge" owl="1">
+    <t t-name="loading_plans_management.StatusBadge" owl="1">
         <span class="badge" t-att-class="'o_field_badge_' + props.status" t-esc="props.label or props.status"/>
     </t>
 
     <!-- Priority Badge Template -->
-    <t t-name="ice_loading_management.PriorityBadge" owl="1">
+    <t t-name="loading_plans_management.PriorityBadge" owl="1">
         <span class="badge" t-att-class="'o_priority_badge_' + props.priority">
             <span t-if="props.priority == 1">🔴</span>
             <span t-elif="props.priority == 2">🟠</span>
@@ -270,7 +270,7 @@
     </t>
 
     <!-- Car Status Template -->
-    <t t-name="ice_loading_management.CarStatus" owl="1">
+    <t t-name="loading_plans_management.CarStatus" owl="1">
         <div class="d-flex align-items-center">
             <div class="badge me-2" t-att-class="'o_loading_status_' + props.status" t-esc="props.status"/>
             <div>
@@ -281,7 +281,7 @@
     </t>
 
     <!-- Empty State Template -->
-    <t t-name="ice_loading_management.EmptyState" owl="1">
+    <t t-name="loading_plans_management.EmptyState" owl="1">
         <div class="text-center py-5">
             <div class="mb-3" style="font-size: 4rem; opacity: 0.5;">
                 <span t-esc="props.icon or '📋'"/>
@@ -295,7 +295,7 @@
     </t>
 
     <!-- Loading Spinner Template -->
-    <t t-name="ice_loading_management.LoadingSpinner" owl="1">
+    <t t-name="loading_plans_management.LoadingSpinner" owl="1">
         <div class="d-flex justify-content-center align-items-center" t-att-style="'height: ' + (props.height or '200px')">
             <div class="text-center">
                 <div class="spinner-border text-primary mb-2" role="status">

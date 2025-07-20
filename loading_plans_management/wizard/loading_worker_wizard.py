@@ -61,7 +61,7 @@ class LoadingWorkerWizard(models.TransientModel):
         self.ensure_one()
         
         # Check permissions
-        if not self.env.user.has_group('ice_loading_management.group_loading_worker'):
+        if not self.env.user.has_group('loading_plans_management.group_loading_worker'):
             raise UserError(_('Only Loading Workers can complete loading operations.'))
         
         # Get the stock picking
@@ -192,7 +192,10 @@ class LoadingWorkerWizard(models.TransientModel):
         picking.button_validate()
         
         # Update loading request
-        self.loading_request_id.write({'state': 'ice_handled'})
+        self.loading_request_id.write({
+            'state': 'ice_handled',
+            'loading_end_date': fields.Datetime.now(),
+            })
         
         # Create detailed chatter message
         message_parts = [f"<p><strong>Loading completed by {self.env.user.name}</strong></p>"]
