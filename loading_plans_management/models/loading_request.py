@@ -905,7 +905,11 @@ class LoadingRequest(models.Model):
             raise UserError(_("You must upload the signed loading form from the salesman before start."))
         
         # Change car driver
-        self.car_id.write({'driver_id': self.salesman_id.partner_id.id})
+        self.car_id.write({
+            'driver_id': self.salesman_id.partner_id.id,
+            'loading_status': 'in_use',
+            
+            })
         
 
         # Create a new driver session

@@ -2,7 +2,7 @@ from odoo import models, fields, api
 
 class FleetVehicle(models.Model):
     _inherit = 'fleet.vehicle'
-    _rec_names_search = ['name', 'driver_id.name','category_id.name']
+    _rec_names_search = ['category_id.name']
         
     loading_status = fields.Selection([
         ('available', 'Available'),

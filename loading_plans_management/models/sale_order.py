@@ -2,6 +2,7 @@ from odoo import models, fields, api, _
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+    _rec_names_search = ['name', 'partner_id.name', 'partner_id.ref']
 
     session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', readonly=True, copy=False)
@@ -87,42 +88,4 @@ class SaleOrder(models.Model):
             order.open_order = open_order
 
     
-    @api.model
-    def _name_search(self, name, domain=None, operator='ilike', limit=100, order=None):
-        """
-        Override name search to include customer reference in search
-        """
-        if domain is None:
-            domain = []
-        
-        if name:
-            # Search in sale order name, customer name, and customer reference
-            domain = [
-                '|', '|', '|',
-                ('name', operator, name),
-                ('partner_id.name', operator, name),
-                ('partner_id.ref', operator, name),
-                ('partner_id.display_name', operator, name)
-            ] + domain
-        
-        return self._search(domain, limit=limit, order=order)
-    
-    def name_get(self):
-        """
-        Override name_get to display sale order name with customer reference
-        """
-        result = []
-        for record in self:
-            customer_ref = record.partner_id.ref or ''
-            customer_name = record.partner_id.name or ''
-            
-            if customer_ref:
-                # Format: "SO001 - Customer Name (REF123)"
-                name = f"{record.name} - {customer_name} ({customer_ref})"
-            else:
-                # Format: "SO001 - Customer Name"
-                name = f"{record.name} - {customer_name}"
-            
-            result.append((record.id, name))
-        
-        return result
+   

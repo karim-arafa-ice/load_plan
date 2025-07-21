@@ -10,8 +10,8 @@
 }
 
 /* Status & Priority Badges */
-.o_field_badge[data-value="draft"], .o_field_badge[data-value="cancelled"] { background-color: #6c757d !important; color: white !important; }
-.o_field_badge[data-value="car_checking"] { background-color: #ffc107 !important; color: #212529 !important; }
+.o_field_badge[data-value="draft"], .o_field_badge[data-value="cancelled"] { background-color: #9ba5ad !important; color: white !important; }
+.o_field_badge[data-value="car_checking"] { background-color: #ffc107 !important; color: #395c80 !important; }
 .o_field_badge[data-value="ready_for_loading"] { background-color: #fd7e14 !important; color: white !important; }
 .o_field_badge[data-value="loading"] { background-color: #6610f2 !important; color: white !important; }
 .o_field_badge[data-value="ready_for_second_loading"] { background-color: #17a2b8 !important; color: white !important; }
@@ -20,11 +20,11 @@
 .o_field_badge[data-value="plugged"], .o_field_badge[data-value="done"] { background-color: #198754 !important; color: white !important; }
 .o_field_badge[data-value="delivering"] { background-color: #007bff !important; color: white !important; }
 .o_field_badge[data-value="second_loading_delivering"] { background-color: #0d6efd !important; color: white !important; }
-.o_field_badge[data-value="delivered"], .o_field_badge[data-value="session_closed"] { background-color: #343a40 !important; color: white !important; }
+.o_field_badge[data-value="delivered"], .o_field_badge[data-value="session_closed"] { background-color: #7add77 !important; color: white !important; }
 
 .o_priority_badge_1 { background-color: #dc3545 !important; color: white !important; font-weight: bold !important; animation: pulse 2s infinite; }
 .o_priority_badge_2 { background-color: #fd7e14 !important; color: white !important; font-weight: bold !important; }
-.o_priority_badge_3 { background-color: #ffc107 !important; color: #212529 !important; }
+.o_priority_badge_3 { background-color: #ffc107 !important; color: #e66262 !important; }
 
 /* Form & Dashboard Styling */
 .o_ice_loading_form_header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
