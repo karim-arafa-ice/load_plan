@@ -215,16 +215,7 @@ class LoadingWorkerWizard(models.TransientModel):
             message_type='comment'
         )
         
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Second Loading Completed Successfully',
-                'message': f'Transfer {picking.name} validated and request moved to second_loading_done state.',
-                'type': 'success',
-                'sticky': False,
-            }
-        }
+        return {'type': 'ir.actions.act_window_close'}
     
     # def _complete_loading(self):
     #     """Complete the actual loading process"""

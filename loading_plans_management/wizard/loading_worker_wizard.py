@@ -220,16 +220,7 @@ class LoadingWorkerWizard(models.TransientModel):
         # Also update the total weight computation
         self.loading_request_id._compute_total_weight()
         
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Loading Completed Successfully',
-                'message': f'Transfer {picking.name} validated and quantities updated.',
-                'type': 'success',
-                'sticky': False,
-            }
-        }
+        return {'type': 'ir.actions.act_window_close'}
 
 
 class LoadingConfirmWizard(models.TransientModel):

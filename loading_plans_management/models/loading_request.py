@@ -525,7 +525,12 @@ class LoadingRequest(models.Model):
     def action_continue_loading(self):
         self.ensure_one()
         self.message_post(body=_('Loading continued by %s.') % self.env.user.name)
-        return self.write({'state': 'plugged'})
+        self.write({'state': 'plugged'})
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
+
     
     def write(self, vals):
         """Track loading priority changes and car changes"""
@@ -612,13 +617,7 @@ class LoadingRequest(models.Model):
         
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Loading Form Uploaded'),
-                'message': _('Signed loading form uploaded successfully. Status changed to "Form Signed".'),
-                'type': 'success',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }
     
     def _notify_form_upload(self, form_type):
@@ -738,13 +737,7 @@ class LoadingRequest(models.Model):
         
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Car Plugged'),
-                'message': _('Car is now plugged and ready for dispatch.'),
-                'type': 'success',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }
     @api.depends('product_line_ids.computed_weight')
     def _compute_total_weight(self):
@@ -763,6 +756,10 @@ class LoadingRequest(models.Model):
             raise UserError(_("You can only confirm a request in 'Draft' state."))
         self._create_related_records()
         self._send_creation_notifications()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
     @api.model
     def create(self, vals):
@@ -923,6 +920,10 @@ class LoadingRequest(models.Model):
             'state': 'delivering',
             'session_id': session.id
         })
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
 
 
@@ -957,6 +958,10 @@ class LoadingRequest(models.Model):
             'loading_start_date': fields.Datetime.now(),
             })
         self.message_post(body=_("Car keys received. The car is now in the loading area."))
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
     def _notify_car_ready_for_dispatch(self):
         recipients = []
@@ -1046,6 +1051,10 @@ class LoadingRequest(models.Model):
                     'second_loading_start_date': fields.Datetime.now()
                     })
         self.message_post(body=_("Second loading started for the car."))
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
     def action_second_loading_done(self):
         self.ensure_one()
@@ -1054,6 +1063,10 @@ class LoadingRequest(models.Model):
                     'second_loading_end_date': fields.Datetime.now()
                     })
         self.message_post(body=_("Second loading Loaded for the car."))
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
     @api.depends('salesman_id')
     def _compute_salesman_cash_journal(self):
@@ -1073,6 +1086,10 @@ class LoadingRequest(models.Model):
             self.state = 'done'
             self.done_date = fields.Datetime.now()
         self._create_car_daily_maintenance_requests()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
         
     def _create_car_daily_maintenance_requests(self):
         car = self.car_id
@@ -1112,6 +1129,10 @@ class LoadingRequest(models.Model):
         if self.is_car_received and self.is_payment_processed and self.is_warehouse_check:
             self.state = 'done'
             self.done_date = fields.Datetime.now()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
 
     def action_empty_warehouse(self):

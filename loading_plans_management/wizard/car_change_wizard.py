@@ -130,16 +130,7 @@ class CarChangeWizard(models.TransientModel):
         
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Car Changed Successfully'),
-                'message': _('Car changed from %s to %s') % (
-                    previous_car.license_plate or previous_car.name,
-                    self.new_car_id.license_plate or self.new_car_id.name
-                ),
-                'type': 'success',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }
     
     def _send_car_change_notifications(self):

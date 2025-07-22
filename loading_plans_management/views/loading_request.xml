@@ -92,11 +92,11 @@
                             string="Handle Car"
                             type="object"
                             class="oe_highlight"
-                            invisible="not is_warehouse_check"
+                            invisible="not is_warehouse_check or is_car_received"
                             groups="loading_plans_management.group_fleet_supervisor,fleet.fleet_group_manager"
                             help="Mark the car as handled after delivery."/>
                     <button name="action_empty_warehouse" string="Empty Warehouse" type="object"
-                            class="oe_highlight" invisible="state != 'session_closed'"
+                            class="oe_highlight" invisible="state != 'session_closed' or is_warehouse_check"
                             help="Mark the warehouse as empty after delivery."/>
                     <button name="action_start_delivery" string="Start Delivery" type="object"
                             class="btn-primary" invisible="state != 'sign_form'"
@@ -276,7 +276,7 @@
                             </field>
                             <div class="oe_clear"/>
                         </page>
-                        <page string="Cash Return" invisible="state != 'session_closed'">
+                        <page string="Cash Return" invisible="not is_warehouse_check">
                             <group>
                                 <field name="salesman_cash_journal_id"/>
                                 <field name="salesman_balance"/>
