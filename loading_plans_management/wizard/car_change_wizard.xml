@@ -35,7 +35,7 @@
                     </group>
                     <group string="New Car">
                         <field name="new_car_id" options="{'no_create': True}" 
-                               domain="[('loading_status', '=', 'available'), ('id', '!=', current_car_id)]"/>
+                               domain="[('loading_status', '=', 'available'), ('id', '!=', current_car_id), ('total_weight_capacity', '>', 1.00)]"/>
                         <field name="new_car_name" readonly="1"/>
                         <field name="new_car_capacity" readonly="1" widget="float" digits="[16,2]"/>
                     </group>

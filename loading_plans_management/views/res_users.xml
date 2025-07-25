@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_users_driver_tree" model="ir.ui.view">
+            <field name="name">res.users.driver.tree</field>
+            <field name="model">res.users</field>
+            <field name="arch" type="xml">
+                <tree string="Drivers">
+                    <field name="name"/>
+                    <field name="credit_limit"/>
+                    <field name="balance"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_drivers_list" model="ir.actions.act_window">
+            <field name="name">Drivers</field>
+            <field name="res_model">res.users</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('is_loading_plan_implemented', '=', True)]</field>
+            <field name="view_id" ref="view_users_driver_tree"/>
+        </record>
+
+        <menuitem id="menu_drivers_list"
+                  name="Drivers"
+                  parent="menu_ice_loading_operations"
+                  action="action_drivers_list"
+                  sequence="20"/>
+    </data>
+</odoo>

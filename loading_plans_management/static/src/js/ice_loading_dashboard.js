@@ -60,13 +60,21 @@ export class IceLoadingDashboard extends Component {
                 loading: 0,
                 readyForSecondLoading: 0,
                 startedSecondLoading: 0,
+                pendingCollectCash: 0,
+                emptyScrap: 0,
+                handleCar: 0,
+                emptyWarehouse: 0,
+                pendingReceiveCarKey: 0,
+                iceHandled: 0,
             },
             recentRequests: [],
             statusDistribution: [],
             priorityDistribution: [],
             loading: true,
             error: null,
-            refreshInterval: null
+            refreshInterval: null,
+            startDate: new Date().toISOString().slice(0, 10),
+            endDate: new Date().toISOString().slice(0, 10),
         });
 
         onWillStart(async () => {
@@ -120,36 +128,57 @@ export class IceLoadingDashboard extends Component {
         }
     }
     
+    get domain() {
+        const { startDate, endDate } = this.state;
+        const domain = [];
+        if (startDate) {
+            domain.push(['dispatch_time', '>=', `${startDate} 00:00:00`]);
+        }
+        if (endDate) {
+            domain.push(['dispatch_time', '<=', `${endDate} 23:59:59`]);
+        }
+        return domain;
+    }
+
     async loadStatistics() {
-        const today = new Date().toISOString().split('T')[0];
         const [
             todayRequests, urgentRequests, readyForLoading, delivering,
             availableCars, busyCars, carChecking, loading,
-            readyForSecondLoading, startedSecondLoading
+            readyForSecondLoading, startedSecondLoading,
+            pendingCollectCash, emptyScrap, handleCar, emptyWarehouse,
+            pendingReceiveCarKey, iceHandled,
         ] = await Promise.all([
-            this.orm.searchCount("ice.loading.request", [['dispatch_time', '>=', today + ' 00:00:00'], ['dispatch_time', '<=', today + ' 23:59:59']]),
-            this.orm.searchCount("ice.loading.request", [['priority', '=', 1], ['state', 'not in', ['cancelled', 'done']]]),
-            this.orm.searchCount("ice.loading.request", [['state', '=', 'ready_for_loading']]),
-            this.orm.searchCount("ice.loading.request", [['state', 'in', ['delivering', 'second_loading_delivering']]]),
-            this.orm.searchCount("fleet.vehicle", [['loading_status', '=', 'available']]),
+            this.orm.searchCount("ice.loading.request", this.domain),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['priority', '=', 1], ['state', 'not in', ['cancelled', 'done']]]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'ready_for_loading']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', 'in', ['delivering', 'second_loading_delivering']]]),
+            this.orm.searchCount("fleet.vehicle", [['loading_status', '=', 'available'], ['total_weight_capacity', '>', 1.00]]),
             this.orm.searchCount("fleet.vehicle", [['loading_status', 'in', ['in_use', 'ready_for_loading', 'plugged']]]),
-            this.orm.searchCount("ice.loading.request", [['state', '=', 'car_checking']]),
-            this.orm.searchCount("ice.loading.request", [['state', '=', 'loading']]),
-            this.orm.searchCount("ice.loading.request", [['state', '=', 'ready_for_second_loading']]),
-            this.orm.searchCount("ice.loading.request", [['state', '=', 'started_second_loading']])
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'car_checking']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'loading']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'ready_for_second_loading']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'started_second_loading']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['is_warehouse_check', '=', true], ['cash_payment_id', '=', false]]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'empty_scrap']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['is_warehouse_check', '=', true], ['is_car_received', '=', false]]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'session_closed'],['is_warehouse_check', '=', false]]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'ready_for_loading']]),
+            this.orm.searchCount("ice.loading.request", [...this.domain, ['state', '=', 'ice_handled']]),
         ]);
 
         return {
             todayRequests, urgentRequests, readyForLoading, delivering,
             availableCars, busyCars, carChecking, loading,
-            readyForSecondLoading, startedSecondLoading
+            readyForSecondLoading, startedSecondLoading,
+            pendingCollectCash, emptyScrap, handleCar, emptyWarehouse,
+            pendingReceiveCarKey, iceHandled,
         };
     }
 
     async loadRecentRequests() {
         // Step 1: Fetch loading requests without the problematic field
         const requests = await this.orm.searchRead(
-            "ice.loading.request", [],
+            "ice.loading.request", this.domain,
             ["name", "car_id", "salesman_id", "state", "dispatch_time", "priority", "total_weight"],
             { order: "create_date desc", limit: 10 }
         );
@@ -244,49 +273,69 @@ export class IceLoadingDashboard extends Component {
     }
 
     async onTodayRequestsClick() {
-        const today = new Date().toISOString().split('T')[0];
-        await this.openLoadingRequests([
-            ['dispatch_time', '>=', today + ' 00:00:00'],
-            ['dispatch_time', '<=', today + ' 23:59:59']
-        ]);
+        await this.openLoadingRequests(this.domain);
     }
 
     async onUrgentRequestsClick() {
-        await this.openLoadingRequests([['priority', '=', 1], ['state', 'not in', ['cancelled', 'done']]]);
+        await this.openLoadingRequests([...this.domain, ['priority', '=', 1], ['state', 'not in', ['cancelled', 'done']]]);
     }
 
     async onReadyForLoadingClick() {
-        await this.openLoadingRequests([['state', '=', 'ready_for_loading']]);
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'ready_for_loading']]);
     }
 
     async onDeliveringClick() {
-        await this.openLoadingRequests([['state', 'in', ['delivering', 'second_loading_delivering']]]);
+        await this.openLoadingRequests([...this.domain, ['state', 'in', ['delivering', 'second_loading_delivering']]]);
     }
     
     async onCarCheckingClick() {
-        await this.openLoadingRequests([['state', '=', 'car_checking']]);
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'car_checking']]);
     }
 
     async onLoadingClick() {
-        await this.openLoadingRequests([['state', '=', 'loading']]);
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'loading']]);
     }
 
     async onReadyForSecondLoadingClick() {
-        await this.openLoadingRequests([['state', '=', 'ready_for_second_loading']]);
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'ready_for_second_loading']]);
     }
 
     async onStartedSecondLoadingClick() {
-        await this.openLoadingRequests([['state', '=', 'started_second_loading']]);
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'started_second_loading']]);
     }
 
     async onAvailableCarsClick() {
-        await this.openFleetVehicles([['loading_status', '=', 'available']]);
+        await this.openFleetVehicles([['loading_status', '=', 'available'], ['total_weight_capacity', '>', 1.00]]);
     }
 
     async onBusyCarsClick() {
         await this.openFleetVehicles([['loading_status', 'in', ['in_use', 'ready_for_loading', 'plugged']]]);
     }
+
+    async onPendingCollectCashClick() {
+        await this.openLoadingRequests([...this.domain, ['is_warehouse_check', '=', true], ['cash_payment_id', '=', false]]);
+    }
+
+    async onEmptyScrapClick() {
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'empty_scrap']]);
+    }
+
+    async onHandleCarClick() {
+        await this.openLoadingRequests([...this.domain, ['is_warehouse_check', '=', true], ['is_car_received', '=', false]]);
+    }
+
+    async onEmptyWarehouseClick() {
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'session_closed'],['is_warehouse_check', '=', false]]);
+    }
     
+    async onPendingReceiveCarKeyClick() {
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'ready_for_loading']]);
+    }
+
+    async onIceHandledClick() {
+        await this.openLoadingRequests([...this.domain, ['state', '=', 'ice_handled']]);
+    }
+
     async refreshDashboard() {
         await this.loadDashboardData();
         this.notification.add("Dashboard refreshed", { type: "success" });
@@ -294,8 +343,13 @@ export class IceLoadingDashboard extends Component {
 
     formatDateTime(datetime) {
         if (!datetime) return "";
-        const date = new Date(datetime);
-        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], {
+        // Odoo sends datetime strings in UTC like "YYYY-MM-DD HH:MM:SS".
+        // To ensure JavaScript parses it as UTC, we replace the space with 'T' and append 'Z'.
+        const utcDate = new Date(datetime.replace(' ', 'T') + 'Z');
+        
+        // toLocaleDateString() and toLocaleTimeString() will now correctly convert the UTC date
+        // to the user's browser timezone.
+        return utcDate.toLocaleDateString() + " " + utcDate.toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit'
         });
@@ -341,6 +395,12 @@ export class IceLoadingDashboard extends Component {
         const colors = { 1: '#dc3545', 2: '#fd7e14', 3: '#ffc107' };
         return colors[priority] || '#6c757d';
     }
+    
+    async onDateChange(e) {
+        this.state[e.target.name] = e.target.value;
+        await this.loadDashboardData();
+    }
+
 }
 
 IceLoadingDashboard.template = "loading_plans_management.Dashboard";

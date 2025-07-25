@@ -9,7 +9,7 @@
                     <group>
                         <field name="loading_request_id" readonly="1"/>
                     </group>
-                    <field name="line_ids">
+                    <field name="line_ids" class="responsive-o2m-list">
                         <tree editable="bottom">
                             <field name="product_id" readonly="1" force_save="1"/>
                             <field name="current_qty" readonly="1"/>

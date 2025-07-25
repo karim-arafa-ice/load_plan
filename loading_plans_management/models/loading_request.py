@@ -35,6 +35,7 @@ class LoadingRequest(models.Model):
         ('done', 'Done'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
+    can_close_session = fields.Boolean(string='Can Close Session', default=False, help="Indicates if the session can be closed after delivery.")
     car_checking_start_date = fields.Datetime(string='Car Checking Start Date', readonly=True, copy=False)
     car_checking_end_date = fields.Datetime(string='Car Checking End Date', readonly=True, copy=False)
     loading_start_date = fields.Datetime(string='Loading Start Date', readonly=True, copy=False)
@@ -55,8 +56,8 @@ class LoadingRequest(models.Model):
 
     session_id = fields.Many2one('ice.driver.session', string='Driver Session', readonly=True, copy=False)
     car_id = fields.Many2one('fleet.vehicle', string='Car', required=True, 
-                           domain="[('loading_status', '=', 'available')]")
-    salesman_id = fields.Many2one('res.users', string='Salesman', required=True,domain="[('is_loading_plan_implemented', '=', True)]")
+                           domain="[('total_weight_capacity', '>', 1.00)]")
+    salesman_id = fields.Many2one('res.users', string='Salesman', required=True)
     special_packing = fields.Char(string='Special Packing')
     route_id = fields.Many2one('crm.team', string='Route (Sales Team)', readonly=True)
     team_leader_id = fields.Many2one('res.users', string='Team Leader', readonly=True)
@@ -102,7 +103,8 @@ class LoadingRequest(models.Model):
 
     is_urgent = fields.Boolean(string="Urgent Request", default=False, help="Bypass 6-hour dispatch rule.")
     pause_reason = fields.Text(string="Pause Reason", readonly=True)
-    is_concrete = fields.Boolean(related='car_id.is_concrete', string='Is Concrete', store=True, readonly=True)
+    is_concrete = fields.Boolean(string='Is Concrete')
+    # force_is_concrete = fields.Boolean(string="Is Concrete")
     customer_line_ids = fields.One2many('ice.loading.customer.line', 'loading_request_id', string='Customer Lines')
     return_picking_id = fields.Many2one('stock.picking', string='Return Picking', readonly=True)
     quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
@@ -114,8 +116,25 @@ class LoadingRequest(models.Model):
     second_internal_transfer_count = fields.Integer(compute='_compute_request_counts')
     return_picking_count = fields.Integer(compute='_compute_request_counts')
     quantity_changes_count = fields.Integer(compute='_compute_request_counts')
+    sale_order_ids = fields.One2many('sale.order', 'loading_request_id', string='Sales Orders')
+    sale_order_count = fields.Integer(compute='_compute_sale_order_count', string="Sales Orders")
 
-   
+    @api.depends('sale_order_ids')
+    def _compute_sale_order_count(self):
+        for request in self:
+            request.sale_order_count = len(request.sale_order_ids)
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        res = super(LoadingRequest, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        if view_type == 'kanban' and self.env.user.has_group('sales_team.group_sale_manager'):
+            doc = etree.XML(res['arch'])
+            for node in doc.xpath("//kanban"):
+                for record in self.search([]):
+                    if record.state in ['loading', 'ice_handled', 'plugged', 'paused', 'sign_form', 'delivering', 'delivered', 'second_loading_request', 'empty_scrap', 'ready_for_second_loading', 'started_second_loading', 'second_loading_done', 'second_loading_delivering', 'session_closed', 'done', 'cancelled']:
+                        node.set('records_draggable', 'false')
+            res['arch'] = etree.tostring(doc)
+        return res
     
     @api.depends(
     'car_check_request_id',
@@ -129,16 +148,14 @@ class LoadingRequest(models.Model):
     def _compute_request_counts(self):
         for request in self:
             # Initialize all fields for this specific record
-            request.first_loading_scrap_count = len(request.first_loading_scrap_ids) if request.first_loading_scrap_ids else 0
+            request.first_loading_scrap_count = 1 if request.first_loading_scrap_ids else 0
             request.loading_scrap_orders_count = len(request.loading_scrap_orders_ids) if request.loading_scrap_orders_ids else 0
             request.quantity_changes_count = len(request.quantity_change_ids) if request.quantity_change_ids else 0
             request.car_check_request_count = 1 if request.car_check_request_id else 0
             request.return_car_check_request_count = 1 if request.return_car_check_request_id else 0
             request.second_internal_transfer_count = 1 if request.second_internal_transfer_id else 0
             request.return_picking_count = 1 if request.return_picking_id else 0
-            request.picking_count = self.env['stock.picking'].search_count(
-                [('loading_request_id', '=', request.id), ('is_second_loading', '=', False)]
-            )
+            request.picking_count = 1 if request.internal_transfer_id else 0
 
     def action_view_first_loading_scrap_orders(self):
         self.ensure_one()
@@ -239,14 +256,18 @@ class LoadingRequest(models.Model):
         """
         for request in self:
             if request.dispatch_time:
-                now = datetime.now()
+                # --- THIS IS THE LINE TO CHANGE ---
+                now_utc = fields.Datetime.now()
+                # ------------------------------------
+
                 if request.is_urgent:
-                    if request.dispatch_time < now + timedelta(hours=3):
+                    # Odoo's datetime fields can be compared directly with timedelta
+                    if request.dispatch_time < now_utc + timedelta(hours=3):
                         raise ValidationError(_("Urgent dispatch time must be at least 3 hours from now."))
                 else:
-                    if request.dispatch_time < now + timedelta(hours=6):
+                    if request.dispatch_time < now_utc + timedelta(hours=6):
                         raise ValidationError(_("Dispatch time must be at least 6 hours from now. For a shorter time, mark the request as urgent."))
-                    
+
     @api.constrains('car_id', 'dispatch_time', 'is_urgent')
     def _check_urgent_per_day(self):
         for request in self:
@@ -441,8 +462,8 @@ class LoadingRequest(models.Model):
                     line.quantity = self.car_id.ice_cup_capacity
             elif line.quantity < 0:
                 raise UserError(_("Quantity cannot be negative. Please enter a valid quantity."))
-            else:
-                line.quantity = 0.0
+            # else:
+            #     line.quantity = 0.0
 
     def action_change_quantities_wizard(self):
         """Open quantity change wizard for sales supervisor"""
@@ -755,7 +776,7 @@ class LoadingRequest(models.Model):
         if self.state != 'draft':
             raise UserError(_("You can only confirm a request in 'Draft' state."))
         self._create_related_records()
-        self._send_creation_notifications()
+        # self._send_creation_notifications()
         return {
             'type': 'ir.actions.client',
             'tag': 'reload',
@@ -837,20 +858,32 @@ class LoadingRequest(models.Model):
             raise UserError(_("Please add products to the loading request before creating an internal transfer."))
 
         move_lines = []
-        source_location_id = False
+        destination_location_id = False
         _logger.info("Creating internal transfer for loading request %s", self.id)
         if self.is_concrete:
             if not self.car_id.location_id:
                 raise UserError(_("The selected concrete car does not have a Source Location configured."))
-            source_location_id = self.loading_place_id.loading_location_id.id            
+            destination_location_id = self.car_id.location_id.id
             # Total quantity is summed from customer lines
             total_quantity = sum(self.customer_line_ids.mapped('quantity'))
-            self.product_line_ids[1].quantity = total_quantity
-            self.product_line_ids[1].quantity_in_pcs = total_quantity
+            # self.product_line_ids[1].quantity = total_quantity
+            # self.product_line_ids[1].quantity_in_pcs = total_quantity
             if total_quantity <= 0:
                 raise UserError(_("Total quantity for concrete loading request must be greater than zero."))
+            product_25kg = self.env.company.product_25kg_id.product_variant_id
+            if not product_25kg:
+                raise UserError(_("Default 25kg Ice Product is not configured in settings."))
+            line_to_update = self.product_line_ids.filtered(lambda l: l.product_id == product_25kg)
+
+            if line_to_update:
+                # Update the quantity on the found line
+                line_to_update.quantity = total_quantity
+                line_to_update.quantity_in_pcs = total_quantity
+            else:
+                raise UserError(_("The 25kg product line was not found. Please ensure it is configured correctly."))
+            
         else:
-            source_location_id = self.loading_place_id.loading_location_id.id
+            destination_location_id = self.salesman_id.accessible_location_id.id
         for line in self.product_line_ids:
             if line.quantity > 0:
                 # Use the computed quantity in pieces for the transfer
@@ -859,8 +892,8 @@ class LoadingRequest(models.Model):
                     'product_id': line.product_id.id,
                     'product_uom_qty': line.quantity_in_pcs,
                     # 'product_uom': self.env.ref('uom.product_uom_unit').id, # Always transfer in PCs
-                    'location_id': source_location_id,
-                    'location_dest_id': self.salesman_id.accessible_location_id.id,
+                    'location_id': self.loading_place_id.loading_location_id.id,
+                    'location_dest_id': destination_location_id,
                 }))
         
         if not move_lines:
@@ -868,15 +901,15 @@ class LoadingRequest(models.Model):
 
         picking_type = self.env['stock.picking.type'].search([
             ('code', '=', 'internal'),
-            ('warehouse_id.lot_stock_id', '=', source_location_id)
+            ('warehouse_id.lot_stock_id', '=', self.loading_place_id.loading_location_id.id)
         ], limit=1)
-        _logger.info("Found picking type %s for source location %s", picking_type.name if picking_type else 'None', source_location_id)
+        _logger.info("Found picking type %s for source location %s", picking_type.name if picking_type else 'None', self.loading_place_id.loading_location_id.id)
         if not picking_type:
             raise UserError(_("No internal transfer operation type found for the source location."))
         _logger.info("Creating stock picking for loading request %s", self.id)
         picking = self.env['stock.picking'].create({
             'picking_type_id': picking_type.id,
-            'location_id': source_location_id,
+            'location_id': self.loading_place_id.loading_location_id.id,
             'location_dest_id': self.car_id.location_id.id if self.is_concrete else self.salesman_id.accessible_location_id.id,
             'move_ids_without_package': move_lines,
             'origin': self.name,
@@ -922,8 +955,25 @@ class LoadingRequest(models.Model):
         })
         return {
             'type': 'ir.actions.client',
-            'tag': 'reload',
+            'tag': 'loading_plans_management.dashboard',
         }
+    def action_view_sale_orders(self):
+        self.ensure_one()
+        return {
+            'name': _('Sales Orders'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', self.sale_order_ids.ids)],
+            'context': {'default_loading_request_id': self.id}
+        }
+    
+    def action_print_payment(self):
+        self.ensure_one()
+        if not self.cash_payment_id:
+            raise UserError(_("No payment record found to print."))
+        # This uses the standard Odoo payment receipt report
+        return self.env.ref('account.action_report_payment_receipt').report_action(self.cash_payment_id)
 
 
 
@@ -1017,10 +1067,11 @@ class LoadingRequest(models.Model):
     def action_close_session(self):
         self.ensure_one()
         if self.is_concrete:
-            self.write({
-                'state': 'session_closed',
-                'session_closed_date': fields.Datetime.now(),
-                })
+            if self.can_close_session:
+                self.write({
+                    'state': 'session_closed',
+                    'session_closed_date': fields.Datetime.now(),
+                    })
         else:
             return {
                 'name': _('Close Session'),
@@ -1109,21 +1160,25 @@ class LoadingRequest(models.Model):
         self.ensure_one()
         if not self.salesman_cash_journal_id:
             raise UserError(_("Salesman's cash journal is not configured."))
-        if self.actual_cash_received <= 0 and not self.is_concrete:
+        if self.actual_cash_received < 0 and not self.is_concrete:
             raise UserError(_("Actual cash received must be a positive value."))
+        if self.actual_cash_received > 0:
 
-        payment = self.env['account.payment'].create({
-            # 'partner_id': self.salesman_id.partner_id.id,
-            'is_internal_transfer': True,
-            'amount': self.actual_cash_received,
-            'payment_type': 'outbound',
-            # 'partner_type': 'customer',
-            'journal_id': self.salesman_cash_journal_id.id,
-            'destination_journal_id': self.destination_journal_id.id
-        })
-        payment.action_post()  
+            payment = self.env['account.payment'].create({
+                # 'partner_id': self.salesman_id.partner_id.id,
+                'is_internal_transfer': True,
+                'amount': self.actual_cash_received,
+                'payment_type': 'outbound',
+                # 'partner_type': 'customer',
+                'journal_id': self.salesman_cash_journal_id.id,
+                'destination_journal_id': self.destination_journal_id.id
+            })
+            payment.action_post() 
+            self.write({
+                    'cash_payment_id': payment.id,
+            }) 
         self.write({
-            'cash_payment_id': payment.id,
+            
             'is_payment_processed': True,
         })
         if self.is_car_received and self.is_payment_processed and self.is_warehouse_check:
@@ -1188,5 +1243,3 @@ class LoadingRequest(models.Model):
             'view_mode': 'form',
             'res_id': self.return_picking_id.id,
         }
-
-    

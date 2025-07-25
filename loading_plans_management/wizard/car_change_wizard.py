@@ -8,7 +8,7 @@ class CarChangeWizard(models.TransientModel):
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', required=True)
     current_car_id = fields.Many2one('fleet.vehicle', string='Current Car', readonly=True)
     new_car_id = fields.Many2one('fleet.vehicle', string='New Car', required=True,
-                                domain="[('loading_status', '=', 'available'), ('id', '!=', current_car_id)]")
+                                domain="[('loading_status', '=', 'available'), ('id', '!=', current_car_id), ('total_weight_capacity', '>', 1.00)]")
     reason = fields.Text(string='Reason for Change', required=True)
 
     # Status validation
@@ -115,7 +115,7 @@ class CarChangeWizard(models.TransientModel):
         
         
         # Send notifications
-        self._send_car_change_notifications()
+        # self._send_car_change_notifications()
         
         # Log the change
         self.loading_request_id.message_post(

@@ -164,7 +164,7 @@ class ScrapProductsWizard(models.TransientModel):
                 ], limit=1)
                 if second_line:
                     second_line.scrap_quantity = scrap_qty_in_pcs
-                    second_line.quantity = second_line.requested_quantity - line.scrap_qty
+                    second_line.quantity = second_line.requested_quantity
         
         # Update loading request with created scraps
         if created_scraps:

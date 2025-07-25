@@ -24,10 +24,18 @@ class DeliveryWizard(models.TransientModel):
         customer_line_id = self.env.context.get('default_customer_line_id')
         if customer_line_id:
             customer_line = self.env['ice.loading.customer.line'].browse(customer_line_id)
+            car_location = customer_line.loading_request_id.car_id.location_id
+                
+            # Filter the sale order's pickings to find the one from the car's location
+            delivery_picking = customer_line.sale_order_id.picking_ids.filtered(
+                lambda p: p.location_id == car_location and p.state not in ('done', 'cancel')
+            )
+
+
             if customer_line.exists():
                 res.update({
                     'customer_line_id': customer_line.id,
-                    'delivery_id': customer_line.delivery_id.id if customer_line.delivery_id else False,
+                    'delivery_id': delivery_picking[0].id if delivery_picking else False,
                     'quantity_to_deliver': customer_line.quantity,
                     'delivered_quantity': customer_line.quantity,
                 })
@@ -95,7 +103,7 @@ class DeliveryWizard(models.TransientModel):
         # Check if all lines in the loading request are now delivered
         loading_request = self.customer_line_id.loading_request_id
         if all(line.is_delivered for line in loading_request.customer_line_ids if line.quantity > 0):
-            loading_request.write({'state': 'delivered'})
+            loading_request.write({'can_close_session': True})
             _logger.info(f"All deliveries completed for loading request {loading_request.name}")
         
         # If button_validate returned an action (like the backorder wizard), we must return it to the user.

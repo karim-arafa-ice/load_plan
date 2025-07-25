@@ -60,3 +60,109 @@ body.o_dark_mode .o_ice_loading_dashboard_tile .table { color: #e2e8f0; }
 body.o_dark_mode .o_ice_loading_dashboard_tile .table th, body.o_dark_mode .o_ice_loading_dashboard_tile .table td { border-color: #4a5568; }
 body.o_dark_mode .o_ice_loading_dashboard_tile .table-hover > tbody > tr:hover > * { color: #e2e8f0; background-color: rgba(255, 255, 255, 0.075); }
 body.o_dark_mode .o_weight_progress_text { color: #FFFFFF; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .o_ice_loading_stat_number {
+        font-size: 2rem;
+    }
+
+    .o_ice_loading_form_header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .o_ice_loading_form_header > div:last-child {
+        margin-top: 1rem;
+    }
+
+    .o_ice_loading_dashboard_tile {
+        padding: 15px;
+    }
+
+    .table-responsive {
+        border: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .o_ice_loading_dashboard {
+        padding: 0.5rem;
+    }
+
+    .o_ice_loading_stat_number {
+        font-size: 1.8rem;
+    }
+
+    .o_ice_loading_stat_label {
+        font-size: 0.8rem;
+    }
+
+    .o_ice_loading_dashboard_tile {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ===================================================
+   RESPONSIVE ONE2MANY TABLES (FOR FORMS & WIZARDS)
+   =================================================== */
+@media (max-width: 768px) {
+    /* Target o2m fields in forms and modals */
+    .o_form_view .o_field_one2many .o_list_view > table,
+    .modal .o_field_one2many .o_list_view > table {
+        border: 0;
+    }
+
+    .o_form_view .o_field_one2many .o_list_view > table thead,
+    .modal .o_field_one2many .o_list_view > table thead {
+        display: none; /* Hide table headers */
+    }
+
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td:last-child,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr > td:last-child {
+        border-bottom: 0;
+    }
+
+    /* Add labels back using pseudo-elements */
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td::before,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr > td::before {
+        content: attr(data-original-title); /* Use the title Odoo puts on cells */
+        font-weight: bold;
+        text-align: left;
+        margin-right: 1rem;
+        white-space: nowrap;
+    }
+
+    /* Handle the first column (usually a handle or checkbox) */
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td.o_list_record_selector,
+    .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td.o_handle_cell,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr > td.o_list_record_selector,
+    .modal .o_field_one2many .o_list_view > table > tbody > tr > td.o_handle_cell {
+        display: none; /* Hide handles and checkboxes on mobile */
+    }
+    
+    /* Adjust buttons inside the list */
+     .o_form_view .o_field_one2many .o_list_view > table > tbody > tr > td .btn,
+     .modal .o_field_one2many .o_list_view > table > tbody > tr > td .btn {
+        width: 100%;
+     }
+}

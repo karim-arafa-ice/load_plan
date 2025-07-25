@@ -27,3 +27,26 @@ class MaintenanceForm(models.Model):
         else:
             self.vehicle_id.loading_status = 'available'
         return res
+    
+    def action_precheck(self):
+        """
+        Set the state to precheck.
+        """
+        res = super(MaintenanceForm, self).action_precheck()
+        if self.loading_request_id:
+            self.vehicle_id.loading_status = 'not_available'
+        return res
+    
+    def action_received(self):
+
+        res = super(MaintenanceForm, self).action_received()
+        if self.loading_request_id:
+            
+            if self.loading_request_id.state == 'car_checking':
+                self.loading_request_id.write({'state': 'ready_for_loading'})
+                self.loading_request_id.car_id.loading_status = 'ready_for_loading'
+                self.loading_request_id.car_checking_end_date = fields.Datetime.now()
+            else:
+                self.vehicle_id.loading_status = 'available'
+
+        return res

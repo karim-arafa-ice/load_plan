@@ -9,6 +9,8 @@
                         <p class="mb-0">Real-time overview of loading operations</p>
                     </div>
                     <div>
+                        <input type="date" class="form-control-sm" name="startDate" t-att-value="state.startDate" t-on-change="onDateChange"/>
+                        <input type="date" class="form-control-sm" name="endDate" t-att-value="state.endDate" t-on-change="onDateChange"/>
                         <button class="btn btn-light btn-sm" t-on-click="refreshDashboard">
                             <i class="fa fa-refresh"/> Refresh
                         </button>
@@ -33,7 +35,7 @@
 
             <div t-if="!state.loading and !state.error">
                 <div class="row mb-4">
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onTodayRequestsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -44,7 +46,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100 border-danger" t-on-click="onUrgentRequestsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -55,7 +57,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onReadyForLoadingClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -66,32 +68,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onDeliveringClick">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="o_ice_loading_stat_label">Delivering</div>
-                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.delivering"/>
-                                </div>
-                                <div class="text-info fs-1">🚚</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onCarCheckingClick">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="o_ice_loading_stat_label">Car Checking</div>
-                                    <div class="o_ice_loading_stat_number text-warning" t-esc="state.stats.carChecking"/>
-                                </div>
-                                <div class="text-warning fs-1">🔧</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onLoadingClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -104,7 +81,34 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onCarCheckingClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Car Checking</div>
+                                    <div class="o_ice_loading_stat_number text-warning" t-esc="state.stats.carChecking"/>
+                                </div>
+                                <div class="text-warning fs-1">🔧</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onIceHandledClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Pending Plug Car</div>
+                                    <div class="o_ice_loading_stat_number" style="color: #e83e8c !important;" t-esc="state.stats.iceHandled"/>
+                                </div>
+                                <div class="fs-1" style="color: #e83e8c !important;">🧊</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onReadyForSecondLoadingClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -115,7 +119,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-3 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onStartedSecondLoadingClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -128,10 +132,12 @@
                             </div>
                         </div>
                     </div>
+                    
                 </div>
+                
 
                 <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-4 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onAvailableCarsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -142,7 +148,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-sm-6 col-lg-4 mb-3">
                         <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onBusyCarsClick">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -153,6 +159,67 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-sm-6 col-lg-4 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onDeliveringClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Delivering</div>
+                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.delivering"/>
+                                </div>
+                                <div class="text-info fs-1">🚚</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <div class="row mb-4">
+                    
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onEmptyScrapClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Empty Damaged Products</div>
+                                    <div class="o_ice_loading_stat_number text-danger" t-esc="state.stats.emptyScrap"/>
+                                </div>
+                                <div class="text-danger fs-1">🗑️</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onEmptyWarehouseClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Empty Warehouse</div>
+                                    <div class="o_ice_loading_stat_number text-warning" t-esc="state.stats.emptyWarehouse"/>
+                                </div>
+                                <div class="text-warning fs-1">🏠</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onHandleCarClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Handle Car</div>
+                                    <div class="o_ice_loading_stat_number text-info" t-esc="state.stats.handleCar"/>
+                                </div>
+                                <div class="text-info fs-1">🚗</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3 mb-3">
+                        <div class="o_ice_loading_dashboard_tile cursor-pointer h-100" t-on-click="onPendingCollectCashClick">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="o_ice_loading_stat_label">Pending Collect Cash</div>
+                                    <div class="o_ice_loading_stat_number text-success" t-esc="state.stats.pendingCollectCash"/>
+                                </div>
+                                <div class="text-success fs-1">💵</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
 
                 <div class="row mb-4">

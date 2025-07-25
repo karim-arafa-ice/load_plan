@@ -10,7 +10,7 @@
                         <field name="need_second_load"/>
                     </group>
                     <group invisible="need_second_load != 'yes'" >
-                        <field name="product_line_ids">
+                        <field name="product_line_ids" class="responsive-o2m-list">
                             <tree editable="bottom">
                                 <field name="product_id"/>
                                 <field name="quantity"/>

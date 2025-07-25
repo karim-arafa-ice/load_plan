@@ -9,7 +9,7 @@
                     Ensure that the quantities entered below exactly match what was returned from the van to complete the process.
                 </div>
                 <field name="loading_request_id" invisible="1"/>
-                <field name="line_ids">
+                <field name="line_ids" class="responsive-o2m-list">
                     <tree editable="bottom">
                         <field name="product_id" readonly="1"/>
                         <field name="loaded_quantity" readonly="1"/>

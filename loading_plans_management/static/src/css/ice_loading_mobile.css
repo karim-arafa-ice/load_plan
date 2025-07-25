@@ -1,0 +1,64 @@
+/* ===================================================
+   MOBILE OVERRIDES FOR ODOO LISTS (ONE2MANY)
+   This version uses a specific class for better targeting.
+   =================================================== */
+
+@media (max-width: 768px) {
+    /*
+     * Select any table that is a descendant of a field
+     * with our custom 'responsive-o2m-list' class.
+     * This is much more specific and reliable.
+    */
+    .responsive-o2m-list .o_list_view > table {
+        border: none;
+    }
+
+    /* Hide the original table headers */
+    .responsive-o2m-list .o_list_view > table thead {
+        display: none;
+    }
+
+    /* Style each table row as a separate card */
+    .responsive-o2m-list .o_list_view > table > tbody > tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        padding: 0.5rem;
+    }
+
+    /* Transform each table cell into a block with flex properties */
+    .responsive-o2m-list .o_list_view > table > tbody > tr > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 10px 8px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .responsive-o2m-list .o_list_view > table > tbody > tr > td:last-child {
+        border-bottom: none;
+    }
+
+    /* Re-create the header label for each cell using the title attribute */
+    .responsive-o2m-list .o_list_view > table > tbody > tr > td::before {
+        content: attr(data-original-title);
+        font-weight: bold;
+        text-align: left;
+        margin-right: 1.5rem;
+        white-space: nowrap;
+    }
+    
+    /* Hide non-essential elements like the drag handle */
+    .responsive-o2m-list .o_list_view > table > tbody > tr > td.o_handle_cell {
+        display: none;
+    }
+
+    /* Adjust inputs and widgets within the cells */
+    .responsive-o2m-list .o_list_view > table > tbody > tr > td .o_field_widget {
+        max-width: 60%;
+        text-align: right;
+    }
+}

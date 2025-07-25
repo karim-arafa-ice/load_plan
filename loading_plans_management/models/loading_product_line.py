@@ -91,8 +91,8 @@ class LoadingProductLine(models.Model):
                 self.quantity = car.ice_25kg_capacity
             elif self.product_type == 'cup':
                 self.quantity = car.ice_cup_capacity
-            else:
-                self.quantity = 0.0
+            # else:
+            #     self.quantity = 0.0
     
  # EDIT 4: Enhanced capacity validation with specific messages
     @api.constrains('computed_weight', 'quantity', 'product_id', 'is_full_load')
