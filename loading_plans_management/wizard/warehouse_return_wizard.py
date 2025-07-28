@@ -239,21 +239,21 @@ class WarehouseReturnWizard(models.TransientModel):
             raise UserError(_("No products to return or scrap. Please add product lines first."))
         
         for line in self.line_ids:
-            if line.current_quantity > 0:
-                total = line.returned_quantity + line.scrap_quantity
-                if abs(total - line.current_quantity) > 0.001:  # Small epsilon for float comparison
-                    if total > line.current_quantity:
-                        raise ValidationError(_(
-                            "For product '%s', the sum of return quantity (%.2f) and scrap quantity (%.2f) "
-                            "exceeds the current quantity (%.2f) by %.2f units."
-                        ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, 
-                             line.current_quantity, total - line.current_quantity))
-                    else:
-                        raise ValidationError(_(
-                            "For product '%s', the sum of return quantity (%.2f) and scrap quantity (%.2f) "
-                            "is less than the current quantity (%.2f) by %.2f units. All units must be accounted for."
-                        ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, 
-                             line.current_quantity, line.current_quantity - total))
+            # if line.current_quantity > 0:
+            #     total = line.returned_quantity + line.scrap_quantity
+            #     if abs(total - line.current_quantity) > 0.001:  # Small epsilon for float comparison
+            #         if total > line.current_quantity:
+            #             raise ValidationError(_(
+            #                 "For product '%s', the sum of return quantity (%.2f) and scrap quantity (%.2f) "
+            #                 "exceeds the current quantity (%.2f) by %.2f units."
+            #             ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, 
+            #                  line.current_quantity, total - line.current_quantity))
+            #         else:
+            #             raise ValidationError(_(
+            #                 "For product '%s', the sum of return quantity (%.2f) and scrap quantity (%.2f) "
+            #                 "is less than the current quantity (%.2f) by %.2f units. All units must be accounted for."
+            #             ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, 
+            #                  line.current_quantity, line.current_quantity - total))
             
             if line.returned_quantity > 0 or line.scrap_quantity > 0:
                 if line.current_quantity <= 0:
@@ -487,8 +487,8 @@ class WarehouseReturnWizardLine(models.TransientModel):
             if line.returned_quantity < 0 or line.scrap_quantity < 0:
                 raise ValidationError(_("Return and scrap quantities cannot be negative."))
             
-            total_processed = line.returned_quantity + line.scrap_quantity
-            if total_processed != line.current_quantity:
-                raise ValidationError(_(
-                    "For product '%s', the sum of Returned Qty (%.2f) and Scrap Qty (%.2f) must be exactly equal to the Current Qty in Van (%.2f)."
-                ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, line.current_quantity))
+            # total_processed = line.returned_quantity + line.scrap_quantity
+            # if total_processed != line.current_quantity:
+            #     raise ValidationError(_(
+            #         "For product '%s', the sum of Returned Qty (%.2f) and Scrap Qty (%.2f) must be exactly equal to the Current Qty in Van (%.2f)."
+            #     ) % (line.product_id.name, line.returned_quantity, line.scrap_quantity, line.current_quantity))
