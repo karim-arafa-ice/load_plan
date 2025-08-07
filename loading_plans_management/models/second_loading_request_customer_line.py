@@ -3,8 +3,8 @@ from odoo.exceptions import ValidationError, UserError
 import logging
 
 _logger = logging.getLogger(__name__)
-class LoadingCustomerLine(models.Model):
-    _name = 'ice.loading.customer.line'
+class SecondLoadingCustomerLine(models.Model):
+    _name = 'second.ice.loading.customer.line'
     _description = 'Loading Request Customer Line'
 
     
@@ -39,7 +39,7 @@ class LoadingCustomerLine(models.Model):
     def _check_car_capacity(self):
         for line in self:
             if line.loading_request_id.is_concrete:
-                total_quantity = sum(line.loading_request_id.customer_line_ids.mapped('quantity'))
+                total_quantity = sum(line.loading_request_id.second_customer_line_ids.mapped('quantity'))
                 product = self.env['product.template'].search([('ice_product_type', '=', '25kg')], limit=1)
                 # Assuming 25kg bags for concrete requests
                 total_weight = total_quantity * product.weight if product.weight else 0

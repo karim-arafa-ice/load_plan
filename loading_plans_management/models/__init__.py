@@ -13,3 +13,4 @@ from . import product_template
 from . import sale_order
 from . import second_loading_product_line
 from . import res_users
+from . import second_loading_request_customer_line

@@ -119,7 +119,7 @@ class LoadingProductLine(models.Model):
                 ) % (line.computed_weight, ice_cup_capacity, car.license_plate or car.name))
             
             # Check total weight doesn't exceed car total capacity
-            total_weight = sum(line.loading_request_id.product_line_ids.mapped('computed_weight'))
+            total_weight = sum(line.loading_request_id.second_product_line_ids.mapped('computed_weight'))
             if total_weight > car.total_weight_capacity:
                 raise ValidationError(_(
                     'Total weight (%.2f kg) exceeds car total capacity (%.2f kg) for car %s'
@@ -148,7 +148,7 @@ class LoadingProductLine(models.Model):
                     computed_weight, car.ice_cup_capacity * product.pcs_per_basket * product.weight if product.weight else car.ice_cup_capacity)
 
             # Check total capacity
-            total_weight = sum(self.loading_request_id.product_line_ids.mapped('computed_weight')) - self.computed_weight + computed_weight
+            total_weight = sum(self.loading_request_id.second_product_line_ids.mapped('computed_weight')) - self.computed_weight + computed_weight
             if total_weight > car.total_weight_capacity:
                 warning_message = _('Total weight (%.2f kg) exceeds car total capacity (%.2f kg)') % (
                     total_weight, car.total_weight_capacity)

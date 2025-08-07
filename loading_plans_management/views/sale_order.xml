@@ -9,10 +9,10 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='tag_ids']" position="after">
                     <field name="session_id" />
-                    <field name="car_id" />
-                    <field name="is_concrete" />
-                    <field name="open_order" invisible="1"/>
-                    <field name="loading_request_id" invisible="1"/>
+                    <field name="car_id" readonly="1"/>
+                    <field name="is_concrete" readonly="1" />
+                    <field name="open_order" readonly="1"/>
+                    <field name="loading_request_id" readonly="1"/>
 
                 </xpath>
                 

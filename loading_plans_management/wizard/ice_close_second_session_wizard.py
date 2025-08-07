@@ -2,40 +2,29 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
 class CloseSessionWizard(models.TransientModel):
-    _name = 'ice.close.session.wizard'
+    _name = 'ice.close.second.session.wizard'
     _description = 'Close Session Wizard'
 
     loading_request_id = fields.Many2one('ice.loading.request', string='Loading Request', required=True)
-    need_second_load = fields.Selection([
-        ('no', 'No'),
-        ('yes', 'Yes')
-    ], string='Need Second Load?', required=True, default='no')
     is_concrete = fields.Boolean(string="Is Concrete",related='loading_request_id.is_concrete',store=True)
-
-    product_line_ids = fields.One2many(
-        'ice.close.session.product.line', 'wizard_id', string='Second Loading Products'
-    )
     customer_line_ids = fields.One2many(
-        'ice.close.session.customer.line', 'wizard_id', string='Second Loading Customers'
+        'ice.close.second.session.customer.line', 'wizard_id', string='Second Loading Customers'
     )
-    current_product_line_ids = fields.One2many('ice.close.session.current.product.line','wizard_id',string="Current Products Quantity")
+    current_product_line_ids = fields.One2many('ice.close.second.session.current.product.line','wizard_id',string="Current Products Quantity")
+
     @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
         if self.env.context.get('default_loading_request_id') and 'current_product_line_ids' in fields_list:
             loading_request = self.env['ice.loading.request'].browse(self.env.context.get('default_loading_request_id'))
-            search_location = loading_request.salesman_id.accessible_location_id
-            if loading_request.is_concrete:
-                search_location = loading_request.car_id.location_id
-            salesman_location = loading_request.salesman_id.accessible_location_id
-            if not salesman_location:
-                raise ValidationError(_("The salesman %s does not have an accessible stock location configured.") % loading_request.salesman_id.name)
+            
+            search_location = loading_request.car_id.location_id
             
             product_map = {}
             lines = []
             
             # Aggregate quantities from first loading
-            for line in loading_request.product_line_ids:
+            for line in loading_request.second_product_line_ids:
                 if line.product_id.id not in product_map:
                     product_map[line.product_id.id] = {'loaded': 0.0, 'product': line.product_id}
                 product_map[line.product_id.id]['loaded'] += line.quantity
@@ -69,65 +58,12 @@ class CloseSessionWizard(models.TransientModel):
             res['current_product_line_ids'] = lines
         
         return res
-
-    @api.onchange('need_second_load')
-    def _onchange_need_second_load(self):
-        if self.need_second_load == 'yes':
-            # Populate lines with the 3 products from the request
-            self.product_line_ids = self.loading_request_id._get_default_product_lines_values(concrete=False)
-        # else:
-            # self.product_line_ids = self.loading_request_id._get_default_product_lines_values(concrete=True)
-
     def action_validate(self):
         self.ensure_one()
         request = self.loading_request_id
-        
-        if self.need_second_load == 'yes':
-            # Check if all lines have zero quantity
-            # if not self.loading_request_id.is_concrete:
-                # product_25kg = self.env.company.product_25kg_id.product_variant_id
-                # if not product_25kg:
-                #     raise UserError(_("Default 25kg Ice Product is not configured in settings."))
-                # line_to_update = self.product_line_ids.filtered(lambda l: l.product_id == product_25kg)
-
-                # if line_to_update:
-                #     # Update the quantity on the found line
-                #     line_to_update.quantity = quantity_25_kg
-                #     line_to_update.quantity_in_pcs = quantity_25_kg
-            all_quantities_zero = all(line.quantity == 0 for line in self.product_line_ids)
-            if all_quantities_zero:
-                raise UserError(_("If you need a second load, you must enter at least one product with a quantity greater than zero."))
-            
-            # Validate individual line quantities
-            for line in self.product_line_ids:
-                if line.quantity < 0:
-                    raise UserError(_("Please enter a valid quantity for the product: %s") % line.product_id.name)
-                
-                # Create second loading product lines only for lines with quantity > 0
-                if line.quantity > 0:
-                    self.env['second.ice.loading.product.line'].create({
-                        'loading_request_id': request.id,
-                        'product_id': line.product_id.id,
-                        'quantity': line.quantity,
-                        'scrap_quantity': 0.0,  # Assuming no scrap for now
-                        'requested_quantity': line.quantity,  # Assuming requested quantity is same as entered
-                        'current_quantity': line.quantity,  # Assuming current quantity is same as entered
+        request.write({'state': 'session_closed',
+                    'second_loading_end_date': fields.Datetime.now()
                     })
-            
-            
-
-            
-            request.write({'state': 'empty_scrap',
-                            'has_second_loading': True,
-                            'delivered_date': fields.Datetime.now(),
-                            'second_loading_request_date': fields.Datetime.now()
-                            })
-        else:
-            request.write({
-                'state': 'session_closed',
-                'session_closed_date': fields.Datetime.now(),
-                })
-
         if self.loading_request_id.is_concrete:
             product_25kg = self.env.company.product_25kg_id.product_variant_id
             warehouse = request.env['stock.warehouse'].search([
@@ -165,7 +101,6 @@ class CloseSessionWizard(models.TransientModel):
                 }
 
                 concrete_order = request.env['sale.order'].create(concrete_order_vals)
-                concrete_order.action_confirm()
                 for picking in concrete_order.picking_ids:
                     if picking.state not in ('done', 'cancel'):
                         picking.write({'location_id': self.loading_request_id.car_id.location_id.id})
@@ -178,7 +113,7 @@ class CloseSessionWizard(models.TransientModel):
                         for move_line in picking.move_line_ids:
                             move_line.qty_done = move_line.quantity_product_uom
                         picking.button_validate()
-                self.env['ice.loading.customer.line'].create({
+                self.env['second.ice.loading.customer.line'].create({
                     'loading_request_id': request.id,
                     'customer_id': line.customer_id.id,
                     'quantity': line.quantity,
@@ -191,27 +126,19 @@ class CloseSessionWizard(models.TransientModel):
         
         return {'type': 'ir.actions.act_window_close'}
 
-class CloseSessionProductLine(models.TransientModel):
-    _name = 'ice.close.session.product.line'
-    _description = 'Close Session Product Line'
-
-    wizard_id = fields.Many2one('ice.close.session.wizard', string='Wizard')
-    product_id = fields.Many2one('product.product', string='Product', required=True)
-    quantity = fields.Float(string='Second Loading Quantity', required=True, default=0.0)
-
 class CloseSessionCustomerLine(models.TransientModel):
-    _name = 'ice.close.session.customer.line'
+    _name = 'ice.close.second.session.customer.line'
     _description = 'Close Session Customer Line'
 
-    wizard_id = fields.Many2one('ice.close.session.wizard', string='Wizard')
-    customer_id = fields.Many2one('res.partner', string='Customer', required=True)
-    quantity = fields.Float(string='Actual Selled Quantity', required=True, default=0.0)
+    wizard_id = fields.Many2one('ice.close.second.session.wizard', string='Wizard')
+    customer_id = fields.Many2one('res.partner', string='Product', required=True)
+    quantity = fields.Float(string='Second Loading Quantity', required=True, default=0.0)
 
 class CloseSessionCurrentProductLine(models.TransientModel):
-    _name = 'ice.close.session.current.product.line'
-    wizard_id = fields.Many2one('ice.close.session.wizard', string='Wizard')
-    product_id = fields.Many2one('product.product', string='Product')
+    _name = 'ice.close.second.session.current.product.line'
+    wizard_id = fields.Many2one('ice.close.second.session.wizard', string='Wizard')
+    product_id = fields.Many2one('product.product', string='Product', required=True)
     loaded_quantity = fields.Float(string='First Loading Quantity', default=0.0)
-    current_quantity = fields.Float(string='Current Quantity',  default=0.0)
-    return_quantity = fields.Float(string='Returned Quantity', default=0.0)
-    scrap_quantity = fields.Float(string='Scrap Quantity', default=0.0)
+    current_quantity = fields.Float(string='Current Quantity', required=True, default=0.0)
+    return_quantity = fields.Float(string='Returned Quantity', required=True, default=0.0)
+    scrap_quantity = fields.Float(string='Scrap Quantity', required=True, default=0.0)

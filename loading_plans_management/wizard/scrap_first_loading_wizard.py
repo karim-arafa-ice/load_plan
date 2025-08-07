@@ -16,6 +16,7 @@ class ScrapProductsWizard(models.TransientModel):
         # Get the database cursor for a direct query
         cr = self.env.cr
         
+        
         sql_query = """
             SELECT SUM(quantity)
             FROM stock_quant
@@ -43,12 +44,14 @@ class ScrapProductsWizard(models.TransientModel):
         
         if not loading_request:
             raise UserError(_("No loading request found in context."))
-            
-        salesman_location = loading_request.salesman_id.accessible_location_id
+        salesman_location = False
+        if loading_request.is_concrete:
+            salesman_location = loading_request.car_id.location_id
+        else:
+            salesman_location = loading_request.salesman_id.accessible_location_id
         if not salesman_location:
             raise UserError(_("Salesman's stock location is not configured."))
 
-        _logger.info(f"Scrap wizard: Loading request {loading_request.name}, Salesman: {loading_request.salesman_id.name}, Location: {salesman_location.name}")
 
         lines = []
 
@@ -95,9 +98,12 @@ class ScrapProductsWizard(models.TransientModel):
         self.ensure_one()
         picking_moves = []
         request = self.loading_request_id
-        salesman_location = request.salesman_id.accessible_location_id
+        salesman_location = False
+        if request.is_concrete:
+            salesman_location = request.car_id.location_id
+        else:
+            salesman_location = request.salesman_id.accessible_location_id
         
-        _logger.info(f"Validating scrap wizard for loading request: {request.name}")
         
         # CRITICAL FIX: Refresh current quantities before validation
         for line in self.line_ids:
@@ -171,6 +177,9 @@ class ScrapProductsWizard(models.TransientModel):
             request.first_loading_scrap_ids = [(6, 0, created_scraps)]
         
         # Create internal transfer for remaining quantities for the second load
+        dest_location = request.salesman_id.accessible_location_id.id
+        if request.is_concrete:
+            dest_location = request.car_id.location_id.id
         for second_line in request.second_product_line_ids:
             if second_line.quantity > 0:
                 picking_moves.append((0, 0, {
@@ -179,7 +188,7 @@ class ScrapProductsWizard(models.TransientModel):
                     'product_uom_qty': second_line.quantity_in_pcs,
                     'product_uom': second_line.product_id.uom_id.id,
                     'location_id': request.loading_place_id.loading_location_id.id,
-                    'location_dest_id': request.salesman_id.accessible_location_id.id,
+                    'location_dest_id': dest_location,
                 }))
         
         # Create internal transfer for remaining quantities
@@ -191,7 +200,7 @@ class ScrapProductsWizard(models.TransientModel):
             picking = self.env['stock.picking'].create({
                 'picking_type_id': picking_type.id if picking_type else False,
                 'location_id': request.loading_place_id.loading_location_id.id,
-                'location_dest_id': request.salesman_id.accessible_location_id.id,
+                'location_dest_id': dest_location,
                 'move_ids_without_package': picking_moves,
                 'origin': request.name + ' (Second Load)',
                 'car_id': request.car_id.id,

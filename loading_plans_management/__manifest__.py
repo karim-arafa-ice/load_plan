@@ -39,10 +39,11 @@
         'wizard/loading_worker_wizard.xml', 
         'wizard/quantity_change_wizard.xml', 
         'wizard/warehouse_return_wizard.xml',
-        'wizard/delivery_wizard.xml',
+        # 'wizard/delivery_wizard.xml',
         'wizard/close_session_wizard.xml',
         'wizard/scrap_first_loading_wizard.xml',
         'wizard/second_loading_worker_wizard.xml',
+        'wizard/close_second_session_wizard.xml',
 
         # Views
         'views/fleet_vehicle.xml',
@@ -55,6 +56,7 @@
         'views/sale_order.xml',
         'views/stock_picking.xml',
         'views/res_users.xml',
+        
               
     ],
     'assets': {

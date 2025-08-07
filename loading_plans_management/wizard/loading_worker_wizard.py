@@ -40,19 +40,19 @@ class LoadingWorkerWizard(models.TransientModel):
                 line = product_lines[0]
                 defaults['product_1_id'] = line.product_id.id
                 defaults['product_1_requested'] = line.quantity
-                defaults['product_1_loaded'] = line.quantity
+                # defaults['product_1_loaded'] = line.quantity
                 
             if len(product_lines) >= 2:
                 line = product_lines[1]
                 defaults['product_2_id'] = line.product_id.id
                 defaults['product_2_requested'] = line.quantity
-                defaults['product_2_loaded'] = line.quantity
+                # defaults['product_2_loaded'] = line.quantity
                 
             if len(product_lines) >= 3:
                 line = product_lines[2]
                 defaults['product_3_id'] = line.product_id.id
                 defaults['product_3_requested'] = line.quantity
-                defaults['product_3_loaded'] = line.quantity
+                # defaults['product_3_loaded'] = line.quantity
         
         return defaults
     
@@ -78,28 +78,14 @@ class LoadingWorkerWizard(models.TransientModel):
         if self.product_3_id and self.product_3_loaded < self.product_3_requested:
             raise UserError(_('Product 3 loaded quantity cannot be less than requested.'))
         if self.product_1_id and self.product_1_loaded > self.product_1_requested:
-            differences.append(f"{self.product_1_id.name}: {self.product_1_loaded} vs {self.product_1_requested}")
+            raise UserError(_('Product 1 loaded quantity cannot be more than requested.'))
         if self.product_2_id and self.product_2_loaded > self.product_2_requested:
-            differences.append(f"{self.product_2_id.name}: {self.product_2_loaded} vs {self.product_2_requested}")
+            raise UserError(_('Product 2 loaded quantity cannot be more than requested.'))
         if self.product_3_id and self.product_3_loaded > self.product_3_requested:
-            differences.append(f"{self.product_3_id.name}: {self.product_3_loaded} vs {self.product_3_requested}")
+            raise UserError(_('Product 3 loaded quantity cannot be more than requested.'))
         
-        if differences:
-            # Show confirmation dialog
-            return {
-                'type': 'ir.actions.act_window',
-                'name': 'Confirm Differences',
-                'res_model': 'ice.loading.confirm.wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {
-                    'default_parent_wizard_id': self.id,
-                    'default_differences': '\n'.join(differences),
-                }
-            }
-        else:
-            # No differences, complete directly
-            return self._complete_loading()
+        
+        return self._complete_loading()
     
     def _complete_loading(self):
         """Complete the actual loading process"""

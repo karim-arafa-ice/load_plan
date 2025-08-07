@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_close_second_session_wizard_form" model="ir.ui.view">
+            <field name="name">ice.close.second.session.wizard.form</field>
+            <field name="model">ice.close.second.session.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Close Second Session">
+                    <group>
+                        <group>
+                            <field name="current_product_line_ids" class="responsive-o2m-list" string="Current Data">
+                                <tree editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="loaded_quantity" readonly="1"/>
+                                    <field name="current_quantity" readonly="1"/>
+                                    <field name="return_quantity"/>
+                                    <field name="scrap_quantity"/>
+                                </tree>
+                            </field>
+                        </group>
+                        <group invisible="not is_concrete" string="Customers Orders">
+                            <field name="is_concrete" invisible="1"/>
+                            <field name="customer_line_ids" class="responsive-o2m-list" invisible="not is_concrete" required="is_concrete">
+                                <tree editable="bottom">
+                                    <field name="customer_id"/>
+                                    <field name="quantity"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </group>
+                    <footer>
+                        <button string="Validate" type="object" name="action_validate" class="btn-primary"/>
+                        <button string="Cancel" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -16,13 +16,10 @@ class MaintenanceForm(models.Model):
         """Override to set loading request state to 'car_checking' when stopping the maintenance form."""
         res = super(MaintenanceForm, self).action_stop()
         if self.loading_request_id:
-            if self.loading_request_id.state == 'car_checking':
-                self.loading_request_id.write({'state': 'ready_for_loading'})
-                self.loading_request_id.car_id.loading_status = 'ready_for_loading'
-                self.loading_request_id.car_checking_end_date = fields.Datetime.now()
-                self.loading_request_id.message_post(body=_("Maintenance form completed. Loading request is now ready for loading."))
-            else:
-                self.vehicle_id.loading_status = 'available'
+                # self.loading_request_id.write({'state': 'ready_for_loading'})
+                # self.loading_request_id.car_id.loading_status = 'ready_for_loading'
+            self.loading_request_id.car_checking_end_date = fields.Datetime.now()
+            self.loading_request_id.message_post(body=_("Maintenance form completed. Loading request is now ready for loading."))
 
         else:
             self.vehicle_id.loading_status = 'available'
@@ -42,11 +39,11 @@ class MaintenanceForm(models.Model):
         res = super(MaintenanceForm, self).action_received()
         if self.loading_request_id:
             
-            if self.loading_request_id.state == 'car_checking':
-                self.loading_request_id.write({'state': 'ready_for_loading'})
-                self.loading_request_id.car_id.loading_status = 'ready_for_loading'
-                self.loading_request_id.car_checking_end_date = fields.Datetime.now()
-            else:
-                self.vehicle_id.loading_status = 'available'
+            # if self.loading_request_id.state == 'car_checking':
+            #     self.loading_request_id.write({'state': 'ready_for_loading'})
+            #     self.loading_request_id.car_id.loading_status = 'ready_for_loading'
+            self.loading_request_id.car_checking_end_date = fields.Datetime.now()
+            
+            self.vehicle_id.loading_status = 'available'
 
         return res

@@ -23,19 +23,20 @@ class LoadingRequest(models.Model):
         ('plugged', 'Plugged / Ready for Dispatch'),
         ('paused', 'Paused'),
         ('sign_form', 'Form signed'),
-        ('delivering', 'Session Started'),
+        ('delivering', 'First Session Started'),
         ('delivered', 'Delivered'),
-        ('second_loading_request', 'Second Loading Request'),
+        ('second_loading_request', 'Second Loading Requested'),
         ('empty_scrap', 'Empty Scrap'),
         ('ready_for_second_loading', 'Ready for Second Loading'),
-        ('started_second_loading', 'Started Second Loading'),
-        ('second_loading_done', 'Second Loading Done'),
+        ('started_second_loading', 'Start Load Second loading'),
+        ('second_loading_done', 'Second Load loaded'),
         ('second_loading_delivering', 'Second Loading Delivering'),
         ('session_closed', 'Session Closed'),
         ('done', 'Done'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
     can_close_session = fields.Boolean(string='Can Close Session', default=False, help="Indicates if the session can be closed after delivery.")
+    can_close_second_session = fields.Boolean(string='Can Close Second Session', default=False, help="Indicates if the session can be closed after delivery.")
     car_checking_start_date = fields.Datetime(string='Car Checking Start Date', readonly=True, copy=False)
     car_checking_end_date = fields.Datetime(string='Car Checking End Date', readonly=True, copy=False)
     loading_start_date = fields.Datetime(string='Loading Start Date', readonly=True, copy=False)
@@ -106,6 +107,7 @@ class LoadingRequest(models.Model):
     is_concrete = fields.Boolean(string='Is Concrete')
     # force_is_concrete = fields.Boolean(string="Is Concrete")
     customer_line_ids = fields.One2many('ice.loading.customer.line', 'loading_request_id', string='Customer Lines')
+    second_customer_line_ids = fields.One2many('second.ice.loading.customer.line','loading_request_id',string="Second Loading Customer line")
     return_picking_id = fields.Many2one('stock.picking', string='Return Picking', readonly=True)
     quantity_changes = fields.One2many('ice.loading.quantity.change', 'loading_request_id', string='Quantity Changes')
     priority = fields.Integer(string='Priority', compute='_compute_priority', store=True, readonly=False, default=10, help="Priority for loading. Lower is higher.")
@@ -376,7 +378,7 @@ class LoadingRequest(models.Model):
     @api.constrains('salesman_id', 'state')
     def _check_salesman_credit_limit(self):
         for request in self:
-             if request.state == 'car_checking':
+             if request.state == 'ready_for_loading':
                 journal = request.salesman_id.journal_id
                 if journal.credit_limit > 0 and journal.balance > journal.credit_limit:
                      raise ValidationError(_("Salesman has exceeded the credit limit of %s. Current balance is %s.") % (journal.credit_limit, journal.balance))
@@ -444,7 +446,7 @@ class LoadingRequest(models.Model):
             self.product_line_ids = self._get_default_product_lines_values(concrete=True)
 
             # Logic to handle concrete-specific fields
-            pass
+            
         else:
             # Logic for non-concrete requests
             self.product_line_ids = self._get_default_product_lines_values(concrete=False)
@@ -621,24 +623,33 @@ class LoadingRequest(models.Model):
         if not self.signed_loading_form:
             raise UserError(_('Please upload the signed loading form first.'))
         
-        # Update status to sign_form
-        self.write({
-            'state': 'sign_form',
-            'form_signed_date': fields.Datetime.now(),
-            })
         
         # Log the action
         self.message_post(
             body=_('Signed loading form uploaded by %s. Status changed to "Form Signed".') % self.env.user.name,
             subject=_('Loading Form Uploaded')
         )
-        
-        # Notify relevant people
-        self._notify_form_upload('loading_form')
-        
+        # Change car driver
+        self.car_id.write({
+            'driver_id': self.salesman_id.partner_id.id,
+            'loading_status': 'in_use',
+            
+            })
+        # Create a new driver session
+        session = self.env['ice.driver.session'].create({
+            'driver_id': self.salesman_id.id,
+            'car_id': self.car_id.id,
+            'loading_request_id': self.id,
+        })
+
+        self.write({
+            'state': 'delivering',
+            'session_id': session.id,
+            'form_signed_date': fields.Datetime.now(),
+        })
         return {
             'type': 'ir.actions.client',
-            'tag': 'reload',
+            'tag': 'loading_plans_management.dashboard',
         }
     
     def _notify_form_upload(self, form_type):
@@ -829,10 +840,15 @@ class LoadingRequest(models.Model):
     def _create_related_records(self):
         """Create car check request, freezer renting requests, and internal transfer"""
         # 1. Create car check request
-        self._create_car_check_request()
+        # self._create_car_check_request()
         
         # # 3. Create internal transfer
         self._create_internal_transfer()
+        self.write({
+            'state': 'ready_for_loading'
+        })
+        self.car_id.loading_status = 'in_use'
+
 
     def _create_car_check_request(self):
         """Create maintenance request for car check"""
@@ -842,7 +858,7 @@ class LoadingRequest(models.Model):
             'city': self.loading_place_id.name,
             'loading_request_id': self.id,
         })
-        self.state = 'car_checking'
+        # self.state = 'car_checking'
         self.car_checking_start_date = fields.Datetime.now()
         self.car_check_request_id = maintenance_request.id
         self.car_id.loading_status = 'in_use'
@@ -854,7 +870,7 @@ class LoadingRequest(models.Model):
 
     def _create_internal_transfer(self):
         """Create internal transfer for loading request"""
-        if not self.product_line_ids and not self.is_concrete:
+        if not self.product_line_ids:
             raise UserError(_("Please add products to the loading request before creating an internal transfer."))
 
         move_lines = []
@@ -865,22 +881,22 @@ class LoadingRequest(models.Model):
                 raise UserError(_("The selected concrete car does not have a Source Location configured."))
             destination_location_id = self.car_id.location_id.id
             # Total quantity is summed from customer lines
-            total_quantity = sum(self.customer_line_ids.mapped('quantity'))
+            # total_quantity = sum(self.customer_line_ids.mapped('quantity'))
             # self.product_line_ids[1].quantity = total_quantity
             # self.product_line_ids[1].quantity_in_pcs = total_quantity
-            if total_quantity <= 0:
-                raise UserError(_("Total quantity for concrete loading request must be greater than zero."))
-            product_25kg = self.env.company.product_25kg_id.product_variant_id
-            if not product_25kg:
-                raise UserError(_("Default 25kg Ice Product is not configured in settings."))
-            line_to_update = self.product_line_ids.filtered(lambda l: l.product_id == product_25kg)
+            # if total_quantity <= 0:
+            #     raise UserError(_("Total quantity for concrete loading request must be greater than zero."))
+            # product_25kg = self.env.company.product_25kg_id.product_variant_id
+            # if not product_25kg:
+            #     raise UserError(_("Default 25kg Ice Product is not configured in settings."))
+            # line_to_update = self.product_line_ids.filtered(lambda l: l.product_id == product_25kg)
 
-            if line_to_update:
+            # if line_to_update:
                 # Update the quantity on the found line
-                line_to_update.quantity = total_quantity
-                line_to_update.quantity_in_pcs = total_quantity
-            else:
-                raise UserError(_("The 25kg product line was not found. Please ensure it is configured correctly."))
+            #     line_to_update.quantity = total_quantity
+            #     line_to_update.quantity_in_pcs = total_quantity
+            # else:
+            #     raise UserError(_("The 25kg product line was not found. Please ensure it is configured correctly."))
             
         else:
             destination_location_id = self.salesman_id.accessible_location_id.id
@@ -1066,23 +1082,23 @@ class LoadingRequest(models.Model):
         }
     def action_close_session(self):
         self.ensure_one()
-        if self.is_concrete:
-            if self.can_close_session:
-                self.write({
-                    'state': 'session_closed',
-                    'session_closed_date': fields.Datetime.now(),
-                    })
-        else:
-            return {
-                'name': _('Close Session'),
-                'type': 'ir.actions.act_window',
-                'res_model': 'ice.close.session.wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {
-                    'default_loading_request_id': self.id,
-                }
-        }
+        # if self.is_concrete:
+        #     if self.can_close_session:
+        #         self.write({
+        #             'state': 'session_closed',
+        #             'session_closed_date': fields.Datetime.now(),
+        #             })
+        # else:
+        return {
+            'name': _('Close Session'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'ice.close.session.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_loading_request_id': self.id,
+            }
+    }
     def action_scrap_products(self):
         self.ensure_one()
         return {
@@ -1109,8 +1125,21 @@ class LoadingRequest(models.Model):
 
     def action_second_loading_done(self):
         self.ensure_one()
+        if self.is_concrete:
+            return {
+            'name': _('Close Second Session'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'ice.close.second.session.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_loading_request_id': self.id,
+            }
+        }
+            
+        else:
         # Update state to session_closed
-        self.write({'state': 'session_closed',
+            self.write({'state': 'session_closed',
                     'second_loading_end_date': fields.Datetime.now()
                     })
         self.message_post(body=_("Second loading Loaded for the car."))
